@@ -1,0 +1,6 @@
+# debug file or logs
+*.debug
+*.log
+
+# build files
+**build**
