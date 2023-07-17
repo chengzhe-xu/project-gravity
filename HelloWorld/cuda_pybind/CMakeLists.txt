@@ -2,14 +2,14 @@ cmake_minimum_required(VERSION 3.18)
 project(hello_world_cuda_pybind LANGUAGES CXX CUDA)
 
 find_package(CUDA REQUIRED)
-add_subdirectory(/home/chengzhexu/Documents/workspace/code_base/project-gravity/3rdparty/pybind11 ./pybind11)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../3rdparty/pybind11 ./pybind11)
 
 set(CMAKE_CXX_STANDARD 11)
 set(PYBIND11_CPP_STANDARD -std=c++11)
 
 include_directories(
     ${PYTHON_INCLUDE_DIRS}
-    /home/chengzhexu/Documents/workspace/code_base/project-gravity/3rdparty/pybind11/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../3rdparty/pybind11/include
     /usr/local/cuda/lib64
     /usr/local/cuda/include
 )

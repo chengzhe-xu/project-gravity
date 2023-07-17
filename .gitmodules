@@ -1,3 +1,6 @@
 [submodule "3rdparty/pybind11"]
 	path = 3rdparty/pybind11
 	url = https://github.com/pybind/pybind11.git
+[submodule "3rdparty/stanford-cs193g-sp2010"]
+	path = 3rdparty/stanford-cs193g-sp2010
+	url = https://github.com/jaredhoberock/stanford-cs193g-sp2010.git

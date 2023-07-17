@@ -13,4 +13,5 @@ The main focus for this repo is:
 The main develop envs will be C/C++ & CUDA + Pybind with Python3.
 
 Update Log
+- 2023/07/16, modify the cmake relative path, add CS193G problem set.
 - 2023/06/22, init this repo
