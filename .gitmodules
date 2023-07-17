@@ -4,3 +4,6 @@
 [submodule "3rdparty/stanford-cs193g-sp2010"]
 	path = 3rdparty/stanford-cs193g-sp2010
 	url = https://github.com/jaredhoberock/stanford-cs193g-sp2010.git
+[submodule "3rdparty/jetson_dla_tutorial"]
+	path = 3rdparty/jetson_dla_tutorial
+	url = https://github.com/NVIDIA-AI-IOT/jetson_dla_tutorial.git
