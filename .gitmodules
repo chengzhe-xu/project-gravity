@@ -7,3 +7,6 @@
 [submodule "3rdparty/jetson_dla_tutorial"]
 	path = 3rdparty/jetson_dla_tutorial
 	url = https://github.com/NVIDIA-AI-IOT/jetson_dla_tutorial.git
+[submodule "3rdparty/trt-samples-for-hackathon-cn"]
+	path = 3rdparty/trt-samples-for-hackathon-cn
+	url = https://github.com/NVIDIA/trt-samples-for-hackathon-cn.git
