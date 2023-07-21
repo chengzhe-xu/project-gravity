@@ -10,3 +10,6 @@
 [submodule "3rdparty/trt-samples-for-hackathon-cn"]
 	path = 3rdparty/trt-samples-for-hackathon-cn
 	url = https://github.com/NVIDIA/trt-samples-for-hackathon-cn.git
+[submodule "3rdparty/torch2trt"]
+	path = 3rdparty/torch2trt
+	url = https://github.com/NVIDIA-AI-IOT/torch2trt.git
