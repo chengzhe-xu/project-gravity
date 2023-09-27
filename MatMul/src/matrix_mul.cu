@@ -1,4 +1,5 @@
 #include "include/matrix_mul.h"
+#include "include/cuda_utils.h"
 
 __global__ void matrix_mul_naive_kernel_32x32(float* matA, float* matB, float* matC, int M, int N, int K) {
     const unsigned int block_id = blockIdx.x;
@@ -21,6 +22,7 @@ __global__ void matrix_mul_naive_kernel_32x32(float* matA, float* matB, float* m
 }
 
 void matrix_mul_naive_host(const float* matA, const float* matB, float* matC, int M, int N, int K) {
+    event_pair timer;
     // cudaMalloc device arrays
     float* device_matA = 0;
     float* device_matB = 0;
@@ -39,10 +41,13 @@ void matrix_mul_naive_host(const float* matA, const float* matB, float* matC, in
     // note that the size is 2048 * 512, we choose 32 * 32 kernels
     int block_size = 32 * 32;
     int grid_size = (M * N) / block_size;
+    start_timer(&timer);
     matrix_mul_naive_kernel_32x32<<<grid_size, block_size>>>(device_matA, device_matB, device_matC, M, N, K);
+    float kernel_time_ms = stop_timer(&timer);
     cudaMemcpy(matC, device_matC, M * N * sizeof(float), cudaMemcpyDeviceToHost);
     cudaFree(device_matA);
     cudaFree(device_matB);
     cudaFree(device_matC);
+    printf("cuda kernel <matrix_mul_naive_kernel_32x32> runtime %f ms.\n", kernel_time_ms);
     return;
 }
