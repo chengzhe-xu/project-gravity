@@ -1,5 +1,6 @@
 #include "matrix_mul.h"
 #include <pybind11/pybind11.h>
+#include <pybind11/eigen.h>
 
 PYBIND11_MODULE(matrix_mul_lib, m) {
     m.doc() = "Matrix Multiplication Library.";
