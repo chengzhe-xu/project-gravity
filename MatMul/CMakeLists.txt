@@ -16,6 +16,14 @@ include_directories(
 
 include_directories(include)
 
+add_library(matrix_mul_lib_kernel STATIC src/matrix_mul.cu)
+
+set_target_properties(matrix_mul_lib_kernel PROPERTIES 
+    POSITION_INDEPENDENT_CODE ON
+    CUDA_VISIBILITY_PRESET "hidden"
+    CUDA_SEPARABLE_COMPILATION ON
+)
+
 add_library(matrix_mul_lib MODULE src/matrix_mul.cc)
 
 set_target_properties(matrix_mul_lib PROPERTIES 
@@ -24,5 +32,5 @@ set_target_properties(matrix_mul_lib PROPERTIES
     PREFIX "${PYTHON_MODULE_PREFIX}"
     SUFFIX "${PYTHON_MODULE_EXTENSION}"
 )
-
+target_link_libraries(matrix_mul_lib PRIVATE matrix_mul_lib_kernel)
 target_link_libraries(matrix_mul_lib PRIVATE pybind11::module)

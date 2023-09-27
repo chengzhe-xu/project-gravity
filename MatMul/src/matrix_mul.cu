@@ -1,5 +1,5 @@
-#include "include/matrix_mul.h"
-#include "include/cuda_utils.h"
+#include "matrix_mul.h"
+#include "cuda_utils.h"
 
 __global__ void matrix_mul_naive_kernel_32x32(float* matA, float* matB, float* matC, int M, int N, int K) {
     const unsigned int block_id = blockIdx.x;
