@@ -11,8 +11,5 @@ if __name__=='__main__':
     matC = np.ascontiguousarray(matC).astype(float)
 
     matC_ref = np.matmul(matA, matB) + matC
-    matrix_mul_lib.mat_mul_naive(matA, matB, matC, 2048, 512, 128)
-
-    print(matC[0, 0])
-    print(matC_ref[0, 0])
-    print(np.max(np.abs(matC)))
+    matC_exp = matrix_mul_lib.mat_mul_naive(matA, matB, matC, 2048, 512, 128)
+    print("Maximum abs error: ", np.max(np.abs(matC_exp - matC_ref)))

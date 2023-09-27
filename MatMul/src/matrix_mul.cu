@@ -21,7 +21,7 @@ __global__ void matrix_mul_naive_kernel_32x32(float* matA, float* matB, float* m
     return;
 }
 
-void matrix_mul_naive_host(const matrix_template& matA, const matrix_template& matB, matrix_template& matC, int M, int N, int K) {
+matrix_template matrix_mul_naive_host(const matrix_template& matA, const matrix_template& matB, matrix_template& matC, int M, int N, int K) {
     event_pair timer;
     // cudaMalloc device arrays
     float* device_matA = 0;
@@ -32,7 +32,7 @@ void matrix_mul_naive_host(const matrix_template& matA, const matrix_template& m
     cudaMalloc((void**)&device_matC, M * N * sizeof(float));
     if(device_matA == 0 || device_matB == 0 || device_matC == 0) {
         printf("couldn't allocate memory\n");
-        return;
+        return matC;
     }
     // cuda mem copy
     cudaMemcpy(device_matA, matA.data(), M * K * sizeof(float), cudaMemcpyHostToDevice);
@@ -45,10 +45,9 @@ void matrix_mul_naive_host(const matrix_template& matA, const matrix_template& m
     matrix_mul_naive_kernel_32x32<<<grid_size, block_size>>>(device_matA, device_matB, device_matC, M, N, K);
     float kernel_time_ms = stop_timer(&timer);
     cudaMemcpy(matC.data(), device_matC, M * N * sizeof(float), cudaMemcpyDeviceToHost);
-    printf("DEBUG %f", matC.data()[0]);
     cudaFree(device_matA);
     cudaFree(device_matB);
     cudaFree(device_matC);
     printf("cuda kernel <matrix_mul_naive_kernel_32x32> runtime %f ms.\n", kernel_time_ms);
-    return;
+    return matC;
 }
