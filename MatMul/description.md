@@ -11,3 +11,11 @@ We need to take the followings into consideration:
   - Bank conflict
 - Tensorcore
 - ...
+
+The following versions are implemented:
+- Naive version
+  - Using the naive for-loop algorithm
+  - With a small optimization that gain 2.28x speed up
+- SIMT verison
+- SIMT - pipeline version
+- Tensorcore - pipeline version

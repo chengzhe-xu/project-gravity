@@ -6,3 +6,4 @@
 
 using matrix_template = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 matrix_template matrix_mul_naive_host(const matrix_template& matA, const matrix_template& matB, matrix_template& matC, int M, int N, int K);
+matrix_template matrix_mul_smit_host(const matrix_template& matA, const matrix_template& matBT, matrix_template& matC, int M, int N, int K);
