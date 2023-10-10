@@ -7,9 +7,9 @@ if __name__=='__main__':
     matA = (np.random.rand(M, K) - 0.5) * 2 * 10
     matB = (np.random.rand(K, N) - 0.5) * 2 * 10
     matC = 0.0*(np.random.rand(M, N) - 0.5) * 2 * 10
-    matA = np.ascontiguousarray(matA).astype(float)
-    matB = np.ascontiguousarray(matB).astype(float)
-    matC = np.ascontiguousarray(matC).astype(float)
+    matA = np.ascontiguousarray(matA.astype(np.float16))
+    matB = np.ascontiguousarray(matB.astype(np.float16))
+    matC = np.ascontiguousarray(matC.astype(np.float16))
 
     matC_ref = np.matmul(matA, matB) + matC
     for _ in range(test_round):
