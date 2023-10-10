@@ -22,6 +22,7 @@ set_target_properties(matrix_mul_lib_kernel PROPERTIES
     POSITION_INDEPENDENT_CODE ON
     CUDA_VISIBILITY_PRESET "hidden"
     CUDA_SEPARABLE_COMPILATION ON
+    CUDA_ARCHITECTURES 87
 )
 
 add_library(matrix_mul_lib MODULE src/matrix_mul.cc)
