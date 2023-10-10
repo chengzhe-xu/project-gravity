@@ -2,7 +2,7 @@ import numpy as np
 import build.matrix_mul_lib as matrix_mul_lib
 
 if __name__=='__main__':
-    M, K, N = 2048*10, 128, 512
+    M, K, N = 2048*32, 128, 512
     test_round = 10
     matA = (np.random.rand(M, K) - 0.5) * 2 * 10
     matB = (np.random.rand(K, N) - 0.5) * 2 * 10
