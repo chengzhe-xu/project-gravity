@@ -12,6 +12,7 @@ The main focus for this repo is:
 
 The main develop envs will be C/C++ & CUDA + Pybind with Python3.
 
-Update Log
-- 2023/07/16, modify the cmake relative path, add Stanford CS193G problem set, add DLA tutorial
-- 2023/06/22, init this repo
+Content
+- Hello World with CUDA, and CUDA - pybind11
+- Matrix multiplication
+- 
