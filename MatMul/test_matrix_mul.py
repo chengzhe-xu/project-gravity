@@ -4,12 +4,12 @@ import build.matrix_mul_lib as matrix_mul_lib
 if __name__=='__main__':
     M, K, N = 2048, 128, 512
     test_round = 1
-    matA = (np.random.rand(M, K) - 0.5) * 10
-    matB = (np.random.rand(K, N) - 0.5) * 10
-    matC = (np.random.rand(M, N) - 0.5) * 10
-    matA = np.ascontiguousarray(matA)
-    matB = np.ascontiguousarray(matB)
-    matC = np.ascontiguousarray(matC)
+    matA = (np.random.rand(M, K) - 0.5) * 2 * 10
+    matB = (np.random.rand(K, N) - 0.5) * 2 * 10
+    matC = (np.random.rand(M, N) - 0.5) * 2 * 10
+    matA = np.ascontiguousarray(matA.astype(np.float32))
+    matB = np.ascontiguousarray(matB.astype(np.float32))
+    matC = np.ascontiguousarray(matC.astype(np.float32))
 
     matC_ref = np.matmul(matA.copy(), matB.copy()) + matC.copy()
     for _ in range(test_round):
