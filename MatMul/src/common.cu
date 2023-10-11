@@ -45,7 +45,7 @@ __device__ __forceinline__ void stg128(__half2* addr, __half2 &reg0, __half2 &re
     );
 }
 
-__device__ __forceinline__ void half2matmul(__half2 acc[8][4], __half2 pA[8], __half2 pB[8]) {
+__device__ __forceinline__ void half2matmulacc(__half2 acc[8][4], __half2 pA[8], __half2 pB[8]) {
     // TODO
     return
 }

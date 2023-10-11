@@ -75,11 +75,55 @@ __global__ void matrix_mul_smit_kernel_128x128(__half2* matA, __half2* matBT, __
         __syncthreads();
         from_a += 8; from_b += 8;
         // set the inner for loop initial value
+        __half2* from_As[8] = {
+            As + 16*((warp_row*32 + thread_row*8 + 0)%8) + (warp_row*32 + thread_row*8 + 0)/8,
+            As + 16*((warp_row*32 + thread_row*8 + 1)%8) + (warp_row*32 + thread_row*8 + 1)/8,
+            As + 16*((warp_row*32 + thread_row*8 + 2)%8) + (warp_row*32 + thread_row*8 + 2)/8,
+            As + 16*((warp_row*32 + thread_row*8 + 3)%8) + (warp_row*32 + thread_row*8 + 3)/8,
+            As + 16*((warp_row*32 + thread_row*8 + 4)%8) + (warp_row*32 + thread_row*8 + 4)/8,
+            As + 16*((warp_row*32 + thread_row*8 + 5)%8) + (warp_row*32 + thread_row*8 + 5)/8,
+            As + 16*((warp_row*32 + thread_row*8 + 6)%8) + (warp_row*32 + thread_row*8 + 6)/8,
+            As + 16*((warp_row*32 + thread_row*8 + 7)%8) + (warp_row*32 + thread_row*8 + 7)/8,
+        };
+        __half2* from_Bs[8] = {
+            Bs + 16*((warp_col*64 + thread_col*8 + 0)%8) + (warp_col*64 + thread_col*8 + 0)/8,
+            Bs + 16*((warp_col*64 + thread_col*8 + 1)%8) + (warp_col*64 + thread_col*8 + 1)/8,
+            Bs + 16*((warp_col*64 + thread_col*8 + 2)%8) + (warp_col*64 + thread_col*8 + 2)/8,
+            Bs + 16*((warp_col*64 + thread_col*8 + 3)%8) + (warp_col*64 + thread_col*8 + 3)/8,
+            Bs + 16*((warp_col*64 + thread_col*8 + 4)%8) + (warp_col*64 + thread_col*8 + 4)/8,
+            Bs + 16*((warp_col*64 + thread_col*8 + 5)%8) + (warp_col*64 + thread_col*8 + 5)/8,
+            Bs + 16*((warp_col*64 + thread_col*8 + 6)%8) + (warp_col*64 + thread_col*8 + 6)/8,
+            Bs + 16*((warp_col*64 + thread_col*8 + 7)%8) + (warp_col*64 + thread_col*8 + 7)/8,
+        };
 
-
+        // inner loop
+        __half2 pA[8], pB[8];
+        #pragma unroll
+        for (int i_inner_step=0; i_inner_step<8; ++i_inner_step) {
+            pA[8] = {};
+            pB[8] = {};
+            #pragma unroll
+            for (int i=0; i<8; ++i){
+                pA[i] = from_As[i][0];
+                pB[i] = from_Bs[i][0];
+            }
+            #pragma unroll
+            for (int i=0; i<8; ++i){
+                from_As[i] += 128;
+                from_Bs[i] += 128;
+            }
+            half2matmulacc(acc, pA, pB);
+            // __syncthreads();
+        }
+        __syncthreads();
     }
-
-    
+    // write back to C
+    __half2* to_c = matC + (block_row*128 + warp_row*32 + thread_row*8) * (N/2) + block_col*128/2 + warp_col*64/2 + thread_col*8/2;
+    #pragma unroll
+    for (int i=0; i<8; ++i) {
+        stg128(to_c+N/2, acc[i][0], acc[i][1], acc[i][2], acc[i][3]);
+    }
+    __syncthreads();
     return;
 }
 
