@@ -16,6 +16,8 @@ The following versions are implemented:
 - Naive version
   - Using the naive for-loop algorithm
   - With a small optimization that gain 2.28x speed up
+- Half version
+  - Based on the naive version, switch the data type from float to half
 - SIMT verison
 - SIMT - pipeline version
 - Tensorcore - pipeline version

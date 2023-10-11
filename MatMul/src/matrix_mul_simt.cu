@@ -1,4 +1,4 @@
-#include "matrix_mul.h"
+#include "matrix_mul.cuh"
 #include "cuda_utils.h"
 
 __global__ void matrix_mul_smit_kernel_32x32(__half* matA, __half* matBT, __half* matC, int M, int N, int K) {

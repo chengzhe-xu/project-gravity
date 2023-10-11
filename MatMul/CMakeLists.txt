@@ -16,7 +16,7 @@ include_directories(
 
 include_directories(include)
 
-add_library(matrix_mul_lib_kernel STATIC src/matrix_mul_naive.cu src/matrix_mul_simt.cu)
+add_library(matrix_mul_lib_kernel STATIC src/common.cu src/matrix_mul_naive.cu src/matrix_mul_half.cu src/matrix_mul_simt.cu)
 
 set_target_properties(matrix_mul_lib_kernel PROPERTIES 
     POSITION_INDEPENDENT_CODE ON
