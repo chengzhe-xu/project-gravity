@@ -50,6 +50,7 @@ __global__ void matrix_mul_smit_kernel_128x128(__half2* matA, __half2* matBT, __
                          Bs + (thread_id%8) * 128 + (( 4*(thread_id/8)+1 )%8) * 16 + ( 4*(thread_id/8)+1 )/8,
                          Bs + (thread_id%8) * 128 + (( 4*(thread_id/8)+2 )%8) * 16 + ( 4*(thread_id/8)+2 )/8,
                          Bs + (thread_id%8) * 128 + (( 4*(thread_id/8)+3 )%8) * 16 + ( 4*(thread_id/8)+3 )/8};
+    // TODO: maybe too much register occupied, bad for occupacy rate
 
     // outer loop
     #pragma unroll
@@ -95,6 +96,7 @@ __global__ void matrix_mul_smit_kernel_128x128(__half2* matA, __half2* matBT, __
             Bs + 16*((warp_col*64 + thread_col*8 + 6)%8) + (warp_col*64 + thread_col*8 + 6)/8,
             Bs + 16*((warp_col*64 + thread_col*8 + 7)%8) + (warp_col*64 + thread_col*8 + 7)/8,
         };
+        // TODO: maybe too much register occupied, bad for occupacy rate
 
         // inner loop
         __half2 pA[8], pB[8];
