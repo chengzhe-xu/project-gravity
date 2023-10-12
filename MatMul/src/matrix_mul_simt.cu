@@ -21,13 +21,16 @@ __global__ void matrix_mul_smit_kernel_128x128(__half2* matA, __half2* matBT, __
     const unsigned int thread_row = (thread_id % 32) / 8;
     const unsigned int thread_col = (thread_id % 32) % 8;
 
+    const unsigned int LD_buffer = 8;
+
     // shared memory
-    __shared__ __align__(4 * 1024) char smem[12 * 1024];
+    __shared__ __align__(3 * 1024) char smem[9 * 1024];
     // As/Bs needs 128 * 16 * half = 128 * 16 * 16 bits = 32768 bits = 32768 / 8 char = 4096 char
+    // add the LD_buffer: need 4352 char = 4.25 k ==> 4.5 k
     // Total in need 8k memory
     // to add some buffer, we assign 4096 + 2048 = 6144 to As / Bs
     __half2* As = reinterpret_cast<__half2 *>(smem);
-    __half2* Bs = reinterpret_cast<__half2 *>(smem + 6 * 1024);
+    __half2* Bs = reinterpret_cast<__half2 *>(smem + 4608);
     // TODO: what is the __align__ used for and why we add some buffer into the share memory?
 
     __half2 acc[8][4];
@@ -41,15 +44,15 @@ __global__ void matrix_mul_smit_kernel_128x128(__half2* matA, __half2* matBT, __
 
     // set the outer for loop initial value
     __half2* from_a = matA + (block_row*128 + 4*(thread_id/8)) * (K/2) + thread_id%8;
-    __half2* to_As[4] = {As + (thread_id%8) * 128 + (( 4*(thread_id/8)+0 )%8) * 16 + ( 4*(thread_id/8)+0 )/8,
-                         As + (thread_id%8) * 128 + (( 4*(thread_id/8)+1 )%8) * 16 + ( 4*(thread_id/8)+1 )/8,
-                         As + (thread_id%8) * 128 + (( 4*(thread_id/8)+2 )%8) * 16 + ( 4*(thread_id/8)+2 )/8,
-                         As + (thread_id%8) * 128 + (( 4*(thread_id/8)+3 )%8) * 16 + ( 4*(thread_id/8)+3 )/8};
+    __half2* to_As[4] = {As + (thread_id%8) * (128+LD_buffer) + (( 4*(thread_id/8)+0 )%8) * 16 + ( 4*(thread_id/8)+0 )/8,
+                         As + (thread_id%8) * (128+LD_buffer) + (( 4*(thread_id/8)+1 )%8) * 16 + ( 4*(thread_id/8)+1 )/8,
+                         As + (thread_id%8) * (128+LD_buffer) + (( 4*(thread_id/8)+2 )%8) * 16 + ( 4*(thread_id/8)+2 )/8,
+                         As + (thread_id%8) * (128+LD_buffer) + (( 4*(thread_id/8)+3 )%8) * 16 + ( 4*(thread_id/8)+3 )/8};
     __half2* from_b = matBT + (block_col*128 + 4*thread_id/8) * (K/2) + thread_id%8; 
-    __half2* to_Bs[4] = {Bs + (thread_id%8) * 128 + (( 4*(thread_id/8)+0 )%8) * 16 + ( 4*(thread_id/8)+0 )/8,
-                         Bs + (thread_id%8) * 128 + (( 4*(thread_id/8)+1 )%8) * 16 + ( 4*(thread_id/8)+1 )/8,
-                         Bs + (thread_id%8) * 128 + (( 4*(thread_id/8)+2 )%8) * 16 + ( 4*(thread_id/8)+2 )/8,
-                         Bs + (thread_id%8) * 128 + (( 4*(thread_id/8)+3 )%8) * 16 + ( 4*(thread_id/8)+3 )/8};
+    __half2* to_Bs[4] = {Bs + (thread_id%8) * (128+LD_buffer) + (( 4*(thread_id/8)+0 )%8) * 16 + ( 4*(thread_id/8)+0 )/8,
+                         Bs + (thread_id%8) * (128+LD_buffer) + (( 4*(thread_id/8)+1 )%8) * 16 + ( 4*(thread_id/8)+1 )/8,
+                         Bs + (thread_id%8) * (128+LD_buffer) + (( 4*(thread_id/8)+2 )%8) * 16 + ( 4*(thread_id/8)+2 )/8,
+                         Bs + (thread_id%8) * (128+LD_buffer) + (( 4*(thread_id/8)+3 )%8) * 16 + ( 4*(thread_id/8)+3 )/8};
     // TODO: maybe too much register occupied, bad for occupacy rate
 
     // outer loop
@@ -111,8 +114,8 @@ __global__ void matrix_mul_smit_kernel_128x128(__half2* matA, __half2* matBT, __
             }
             #pragma unroll
             for (int i=0; i<8; ++i){
-                from_As[i] += 128;
-                from_Bs[i] += 128;
+                from_As[i] += (128+LD_buffer);
+                from_Bs[i] += (128+LD_buffer);
             }
             half2matmulacc(acc, pA, pB);
             // __syncthreads();
