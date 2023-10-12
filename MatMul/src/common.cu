@@ -46,6 +46,18 @@ __device__ __forceinline__ void stg128(__half2* addr, __half2 &reg0, __half2 &re
 }
 
 __device__ __forceinline__ void half2matmulacc(__half2 acc[8][4], __half2 pA[8], __half2 pB[8]) {
-    // TODO
+    #pragma unroll
+    for (int i=0; i<8; ++i) {
+        #pragma unroll
+        for (int j=0; j<4; ++j) {
+            // acc[i][j].x += pA[i].x * pB[2*j].x + pA[i].y * pB[2*j].y;
+            // acc[i][j].y += pA[i].x * pB[2*j+1].x + pA[i].y * pB[2*j+1].y;
+            __half2 tmp[3] = {__half2{pB[2*j].x, pB[2*j+1].y},
+                              __half2{pA[i].y, pA[i].x},
+                              __half2{pB[2*j].y, pB[2*j+1].x}};
+            acc[i][j] = __hfma2(pA[i], tmp[0], acc[i][j]);
+            acc[i][j] = __hfma2(tmp[1], tmp[2], acc[i][j]);
+        }
+    }
     return
 }
