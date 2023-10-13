@@ -59,5 +59,5 @@ __device__ __forceinline__ void half2matmulacc(__half2 acc[8][4], __half2 pA[8],
             acc[i][j] = __hfma2(tmp[1], tmp[2], acc[i][j]);
         }
     }
-    return
+    return;
 }
