@@ -16,14 +16,41 @@ include_directories(
 
 include_directories(include)
 
-add_library(matrix_mul_lib_kernel STATIC src/common.cu src/matrix_mul_naive.cu src/matrix_mul_half.cu src/matrix_mul_simt.cu)
-
-set_target_properties(matrix_mul_lib_kernel PROPERTIES 
+# common helper functions
+add_library(matrix_mul_lib_common_helpers STATIC src/common.cu)
+set_target_properties(matrix_mul_lib_common_helpers PROPERTIES 
     POSITION_INDEPENDENT_CODE ON
     CUDA_VISIBILITY_PRESET "hidden"
     CUDA_SEPARABLE_COMPILATION ON
     CUDA_ARCHITECTURES 87
 )
+# naive version
+add_library(matrix_mul_lib_naive STATIC src/matrix_mul_naive.cu)
+set_target_properties(matrix_mul_lib_naive PROPERTIES 
+    POSITION_INDEPENDENT_CODE ON
+    CUDA_VISIBILITY_PRESET "hidden"
+    CUDA_SEPARABLE_COMPILATION ON
+    CUDA_ARCHITECTURES 87
+)
+target_link_libraries(matrix_mul_lib_naive PRIVATE matrix_mul_lib_common_helpers)
+# half version
+add_library(matrix_mul_lib_half STATIC src/matrix_mul_half.cu)
+set_target_properties(matrix_mul_lib_half PROPERTIES 
+    POSITION_INDEPENDENT_CODE ON
+    CUDA_VISIBILITY_PRESET "hidden"
+    CUDA_SEPARABLE_COMPILATION ON
+    CUDA_ARCHITECTURES 87
+)
+target_link_libraries(matrix_mul_lib_half PRIVATE matrix_mul_lib_common_helpers)
+# SIMT version
+add_library(matrix_mul_lib_simt STATIC src/matrix_mul_simt.cu)
+set_target_properties(matrix_mul_lib_simt PROPERTIES 
+    POSITION_INDEPENDENT_CODE ON
+    CUDA_VISIBILITY_PRESET "hidden"
+    CUDA_SEPARABLE_COMPILATION ON
+    CUDA_ARCHITECTURES 87
+)
+target_link_libraries(matrix_mul_lib_simt PRIVATE matrix_mul_lib_common_helpers)
 
 add_library(matrix_mul_lib MODULE src/matrix_mul.cc)
 
@@ -34,5 +61,7 @@ set_target_properties(matrix_mul_lib PROPERTIES
     SUFFIX "${PYTHON_MODULE_EXTENSION}"
     CUDA_ARCHITECTURES 87
 )
-target_link_libraries(matrix_mul_lib PRIVATE matrix_mul_lib_kernel)
+target_link_libraries(matrix_mul_lib PRIVATE matrix_mul_lib_naive)
+target_link_libraries(matrix_mul_lib PRIVATE matrix_mul_lib_half)
+target_link_libraries(matrix_mul_lib PRIVATE matrix_mul_lib_simt)
 target_link_libraries(matrix_mul_lib PRIVATE pybind11::module)

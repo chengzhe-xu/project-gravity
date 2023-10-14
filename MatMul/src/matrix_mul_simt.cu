@@ -1,6 +1,47 @@
 #include "matrix_mul.cuh"
 #include "cuda_utils.h"
 
+// #define __HALF2_TO_UI(var) *(reinterpret_cast<unsigned int *>(&(var))) from cuda_fp16.hpp
+__device__ __forceinline__ void ldg128(const __half2* addr, __half2 &reg0, __half2 &reg1, __half2 &reg2, __half2 &reg3){
+    asm volatile(
+        "ld.global.nc.v4.b32 {%1, %2, %3, %4}, [%0];\n"
+        : "=r"(*(reinterpret_cast<unsigned int *>(&(reg0)))),
+          "=r"(*(reinterpret_cast<unsigned int *>(&(reg1)))),
+          "=r"(*(reinterpret_cast<unsigned int *>(&(reg2)))),
+          "=r"(*(reinterpret_cast<unsigned int *>(&(reg3))))
+        : "l"(addr)
+    );
+}
+
+__device__ __forceinline__ void stg128(__half2* addr, __half2 &reg0, __half2 &reg1, __half2 &reg2, __half2 &reg3) {
+    asm volatile(
+        "st.global.v4.b32 [%0], {%1, %2, %3, %4};\n"
+        :
+        : "l"(addr),
+          "r"(*(reinterpret_cast<unsigned int *>(&(reg0)))),
+          "r"(*(reinterpret_cast<unsigned int *>(&(reg1)))),
+          "r"(*(reinterpret_cast<unsigned int *>(&(reg2)))),
+          "r"(*(reinterpret_cast<unsigned int *>(&(reg3))))
+    );
+}
+
+__device__ __forceinline__ void half2matmulacc(__half2 acc[8][4], __half2 pA[8], __half2 pB[8]) {
+    #pragma unroll
+    for (int i=0; i<8; ++i) {
+        #pragma unroll
+        for (int j=0; j<4; ++j) {
+            // acc[i][j].x += pA[i].x * pB[2*j].x + pA[i].y * pB[2*j].y;
+            // acc[i][j].y += pA[i].x * pB[2*j+1].x + pA[i].y * pB[2*j+1].y;
+            __half2 tmp[3] = {__half2{pB[2*j].x, pB[2*j+1].y},
+                              __half2{pA[i].y, pA[i].x},
+                              __half2{pB[2*j].y, pB[2*j+1].x}};
+            acc[i][j] = __hfma2(pA[i], tmp[0], acc[i][j]);
+            acc[i][j] = __hfma2(tmp[1], tmp[2], acc[i][j]);
+        }
+    }
+    return;
+}
+
 /*
 This implementation is the SIMT core version.
 For each block, we assign 16*16 threads,
@@ -38,11 +79,11 @@ __global__ void matrix_mul_smit_kernel_128x128(__half2* matA, __half2* matBT, __
     __half2* from_c = matC + (block_row*128 + warp_row*32 + thread_row*8) * (N/2) + block_col*128/2 + warp_col*64/2 + thread_col*8/2;
     #pragma unroll
     for (int i=0; i<8; ++i) {
-        ldg128(from_c+i*N/2, acc[i][0], acc[i][1], acc[i][2], acc[i][3]);
-        // acc[i][0] = __ldg(from_c+i*N/2);
-        // acc[i][1] = __ldg(from_c+i*N/2 + 1);
-        // acc[i][2] = __ldg(from_c+i*N/2 + 2);
-        // acc[i][3] = __ldg(from_c+i*N/2 + 3);
+        // ldg128(from_c+i*N/2, acc[i][0], acc[i][1], acc[i][2], acc[i][3]);
+        acc[i][0] = __ldg(from_c+i*N/2);
+        acc[i][1] = __ldg(from_c+i*N/2 + 1);
+        acc[i][2] = __ldg(from_c+i*N/2 + 2);
+        acc[i][3] = __ldg(from_c+i*N/2 + 3);
     }
     // __syncthreads();
 
@@ -130,11 +171,11 @@ __global__ void matrix_mul_smit_kernel_128x128(__half2* matA, __half2* matBT, __
     __half2* to_c = matC + (block_row*128 + warp_row*32 + thread_row*8) * (N/2) + block_col*128/2 + warp_col*64/2 + thread_col*8/2;
     #pragma unroll
     for (int i=0; i<8; ++i) {
-        stg128(to_c+i*N/2, acc[i][0], acc[i][1], acc[i][2], acc[i][3]);
-        // (to_c+i*N/2)[0] = acc[i][0];
-        // (to_c+i*N/2)[1] = acc[i][1];
-        // (to_c+i*N/2)[2] = acc[i][2];
-        // (to_c+i*N/2)[3] = acc[i][3];
+        // stg128(to_c+i*N/2, acc[i][0], acc[i][1], acc[i][2], acc[i][3]);
+        (to_c+i*N/2)[0] = acc[i][0];
+        (to_c+i*N/2)[1] = acc[i][1];
+        (to_c+i*N/2)[2] = acc[i][2];
+        (to_c+i*N/2)[3] = acc[i][3];
 
     }
     __syncthreads();
