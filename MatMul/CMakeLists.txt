@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.16)
 project(matrix_mul_lib LANGUAGES CXX CUDA)
 
 find_package(CUDA REQUIRED)
@@ -32,6 +32,7 @@ set_target_properties(matrix_mul_lib PROPERTIES
     INTERPROCEDURAL_OPTIMIZATION TRUE
     PREFIX "${PYTHON_MODULE_PREFIX}"
     SUFFIX "${PYTHON_MODULE_EXTENSION}"
+    CUDA_ARCHITECTURES 87
 )
 target_link_libraries(matrix_mul_lib PRIVATE matrix_mul_lib_kernel)
 target_link_libraries(matrix_mul_lib PRIVATE pybind11::module)

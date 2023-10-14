@@ -24,7 +24,7 @@ __global__ void matrix_mul_smit_kernel_128x128(__half2* matA, __half2* matBT, __
     const unsigned int LD_buffer = 8;
 
     // shared memory
-    __shared__ __align__(3 * 1024) char smem[9 * 1024];
+    __shared__ __align__(16 * 1024) char smem[9 * 1024];
     // As/Bs needs 128 * 16 * half = 128 * 16 * 16 bits = 32768 bits = 32768 / 8 char = 4096 char
     // add the LD_buffer: need 4352 char = 4.25 k ==> 4.5 k
     // Total in need 8k memory

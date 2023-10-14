@@ -21,14 +21,14 @@ __global__ void cast_kernel_half2float(float* arr, __half* arr_h, const int arr_
     __syncthreads();
     return;
 }
-
+// #define __HALF2_TO_UI(var) *(reinterpret_cast<unsigned int *>(&(var))) from cuda_fp16.hpp
 __device__ __forceinline__ void ldg128(const __half2* addr, __half2 &reg0, __half2 &reg1, __half2 &reg2, __half2 &reg3){
     asm volatile(
         "ld.global.nc.v4.b32 {%1, %2, %3, %4}, [%0];\n"
-        : "=r"(__HALF2_TO_UI(reg0)),
-          "=r"(__HALF2_TO_UI(reg1)),
-          "=r"(__HALF2_TO_UI(reg2)),
-          "=r"(__HALF2_TO_UI(reg3))
+        : "=r"(*(reinterpret_cast<unsigned int *>(&(reg0)))),
+          "=r"(*(reinterpret_cast<unsigned int *>(&(reg1)))),
+          "=r"(*(reinterpret_cast<unsigned int *>(&(reg2)))),
+          "=r"(*(reinterpret_cast<unsigned int *>(&(reg3))))
         : "l"(addr)
     );
 }
@@ -38,10 +38,10 @@ __device__ __forceinline__ void stg128(__half2* addr, __half2 &reg0, __half2 &re
         "st.global.v4.b32 [%0], {%1, %2, %3, %4};\n"
         :
         : "l"(addr),
-          "r"(__HALF2_TO_UI(reg0)),
-          "r"(__HALF2_TO_UI(reg1)),
-          "r"(__HALF2_TO_UI(reg2)),
-          "r"(__HALF2_TO_UI(reg3))
+          "r"(*(reinterpret_cast<unsigned int *>(&(reg0)))),
+          "r"(*(reinterpret_cast<unsigned int *>(&(reg1)))),
+          "r"(*(reinterpret_cast<unsigned int *>(&(reg2)))),
+          "r"(*(reinterpret_cast<unsigned int *>(&(reg3))))
     );
 }
 
