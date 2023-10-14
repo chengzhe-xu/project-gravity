@@ -39,6 +39,6 @@ if __name__=='__main__':
         matC_simt_exp = matrix_mul_lib.mat_mul_simt(matA.astype(np.float16), matB.T.astype(np.float16), matC.copy().astype(np.float16), M, N, K)
         simt_abs_err, simt_abs_rel, smit_rel_err = abs_error_w_rel(matC_simt_exp.copy(), matC_ref.astype(np.float16).copy())
 
-        print(f"Maximum abs error: naive version: abs: {naive_abs_err} ({100*naive_abs_rel}%)\
-              half version: abs: {half_abs_err} ({100*half_abs_rel}%)\
-              SIMT version abs: {simt_abs_err} ({100*simt_abs_rel}%)")
+        print(f"naive version max abs err: {naive_abs_err} ({100*naive_abs_rel}%)")
+        print(f"half version max abs err: {half_abs_err} ({100*half_abs_rel}%)")
+        print(f"SIMT version max abs err: {simt_abs_err} ({100*simt_abs_rel}%)")
