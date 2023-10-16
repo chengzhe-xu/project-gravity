@@ -147,22 +147,20 @@ __global__ void matrix_mul_smit_kernel_128x128(__half2* matA, __half2* matBT, __
         // TODO: maybe too much register occupied, bad for occupacy rate
 
         // inner loop
-        __half2 pA[8], pB[8];
         #pragma unroll
         for (int i_inner_step=0; i_inner_step<8; ++i_inner_step) {
-            pA[8] = {};
-            pB[8] = {};
+            __half2 pA[8], pB[8];
             #pragma unroll
             for (int i=0; i<8; ++i){
                 pA[i] = from_As[i][0];
                 pB[i] = from_Bs[i][0];
             }
+            half2matmulacc(acc, pA, pB);
             #pragma unroll
             for (int i=0; i<8; ++i){
                 from_As[i] += (128+LD_buffer);
                 from_Bs[i] += (128+LD_buffer);
             }
-            half2matmulacc(acc, pA, pB);
             // __syncthreads();
         }
         __syncthreads();
