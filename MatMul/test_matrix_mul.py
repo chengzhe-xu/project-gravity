@@ -17,13 +17,21 @@ def abs_error_w_rel(mat_2d, mat_ref_2d, esp=1e-9):
     return abs_err, abs_rel, rel_err
 
 if __name__=='__main__':
-    M, K, N = 2048, 128, 512
+    M, K, N = 2048, 32, 512
     test_round = 1
     np.random.seed(702)
     for _ in range(test_round):
         matA = (np.random.rand(M, K) - 0.5) * 2 * 10
         matB = (np.random.rand(K, N) - 0.5) * 2 * 10
-        matC = (np.random.rand(M, N) - 0.5) * 2 * 10
+        matC = 0.0*(np.random.rand(M, N) - 0.5) * 2 * 10
+        for i_m in range(M):
+            for j_k in range(K):
+                matA[i_m][j_k] = (i_m * K + j_k) % 10
+        for i_k in range(K):
+            for j_n in range(N):
+                matB[i_k][j_n] = (i_k * N + j_n) % 10
+        print(matA)
+        print(matB)
         matA = np.ascontiguousarray(matA.astype(np.float32))
         matB = np.ascontiguousarray(matB.astype(np.float32))
         matC = np.ascontiguousarray(matC.astype(np.float32))

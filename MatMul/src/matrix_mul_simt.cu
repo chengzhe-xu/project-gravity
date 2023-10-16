@@ -153,6 +153,29 @@ __global__ void matrix_mul_smit_kernel_128x128(__half2* matA, __half2* matBT, __
                 pA[i] = from_As[i][0];
                 pB[i] = from_Bs[i][0];
             }
+            // bug: every odd inner lop, i_inner_step = 2, 4, 6...
+            // pB pointer is right-switched by 1
+            if (blockIdx.x == 9 && threadIdx.x == 75) {
+                printf("i_step, %d, i_inner_step, %d\n", i_step, i_inner_step);
+                // printf("pA: %f\n", __half2float(pA[0].x));
+                // for (int vis_i=0; vis_i<8; ++vis_i){
+                //     printf("%f, ", __half2float(pA[vis_i].x));
+                // }
+                // printf("\n");
+                // for (int vis_i=0; vis_i<8; ++vis_i){
+                //     printf("%f, ", __half2float(pA[vis_i].y));
+                // }
+                // printf("\n");
+                printf("pB: %f\n", __half2float(pB[0].x));
+                // for (int vis_i=0; vis_i<8; ++vis_i){
+                //     printf("%f, ", __half2float(pB[vis_i].x));
+                // }
+                // printf("\n");
+                // for (int vis_i=0; vis_i<8; ++vis_i){
+                //     printf("%f, ", __half2float(pB[vis_i].y));
+                // }
+                printf("\n");
+            }
             half2matmulacc(acc, pA, pB);
             #pragma unroll
             for (int i=0; i<8; ++i){
