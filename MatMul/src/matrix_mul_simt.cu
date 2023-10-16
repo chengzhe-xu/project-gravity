@@ -68,8 +68,6 @@ __global__ void matrix_mul_smit_kernel_128x128(__half2* matA, __half2* matBT, __
     __shared__ __align__(16 * 1024) char smem[9 * 1024];
     // As/Bs needs 128 * 16 * half = 128 * 16 * 16 bits = 32768 bits = 32768 / 8 char = 4096 char
     // add the LD_buffer: need 4352 char = 4.25 k ==> 4.5 k
-    // Total in need 8k memory
-    // to add some buffer, we assign 4096 + 2048 = 6144 to As / Bs
     __half2* As = reinterpret_cast<__half2 *>(smem);
     __half2* Bs = reinterpret_cast<__half2 *>(smem + 4608);
     // TODO: what is the __align__ used for and why we add some buffer into the share memory?
