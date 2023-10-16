@@ -19,7 +19,7 @@ The following versions are implemented:
 - Half version
   - Based on the naive version, switch the data type from float to half
 - SIMT verison
-  - what is `__align__(4*1024)` used for?
+  - what is `__align__(16*1024)` used for?
   - why we need to add some buffer into the share memory?
   - c++ inline assumble and force inline?
 - SIMT - pipeline version

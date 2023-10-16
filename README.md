@@ -15,4 +15,11 @@ The main develop envs will be C/C++ & CUDA + Pybind with Python3.
 Content
 - Hello World with CUDA, and CUDA - pybind11
 - Matrix multiplication
-- 
+- ...
+
+The project Envs.
+- Cmake 3.27.4
+- Cuda 11.4
+- sm_87 (Ampere)
+- Eigen3
+- Pybind11
