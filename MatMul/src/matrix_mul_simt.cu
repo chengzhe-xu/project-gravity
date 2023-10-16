@@ -172,7 +172,6 @@ __global__ void matrix_mul_smit_kernel_128x128(__half2* matA, __half2* matBT, __
         (to_c+i*N/2)[1] = acc[i][1];
         (to_c+i*N/2)[2] = acc[i][2];
         (to_c+i*N/2)[3] = acc[i][3];
-
     }
     __syncthreads();
     return;
