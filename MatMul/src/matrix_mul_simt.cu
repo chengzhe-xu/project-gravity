@@ -51,6 +51,17 @@ For each warp, we assign 32*64 C matrix
 For each step, we set k = 16
 */
 
+/*
+to debug matrix mul, it is very useful to use "cycle matrix" as input, 
+0 1 2 3 4 5 6 7 8 9 0 1
+2 3 4 5 6 7 8 9 0 1 2 3
+.....
+.....
+4 5 6 7 8 9 0 1 2 3 4 5
+and print out every details in the matmul process, 
+mem bias, mem content, pA, pB, and check whether or not the output match expectation
+*/
+
 __global__ void matrix_mul_smit_kernel_128x128(__half2* matA, __half2* matBT, __half2* matC, int M, int N, int K) {
     const unsigned int block_id = blockIdx.x;
     const unsigned int thread_id = threadIdx.x;
