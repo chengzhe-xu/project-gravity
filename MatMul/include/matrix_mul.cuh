@@ -17,3 +17,4 @@ using matrix_template = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eig
 matrix_template matrix_mul_naive_host(const matrix_template& matAT, const matrix_template& matB, matrix_template& matC, int M, int N, int K);
 matrix_template matrix_mul_half_host(const matrix_template& matAT, const matrix_template& matB, matrix_template& matC, int M, int N, int K);
 matrix_template matrix_mul_smit_host(const matrix_template& matA, const matrix_template& matBT, matrix_template& matC, int M, int N, int K);
+matrix_template matrix_mul_smit_pipeline_host(const matrix_template& matA, const matrix_template& matBT, matrix_template& matC, int M, int N, int K);

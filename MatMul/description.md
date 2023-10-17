@@ -23,5 +23,7 @@ The following versions are implemented:
   - why we need to add some buffer into the share memory?
   - c++ inline assumble and force inline?
 - SIMT - pipeline version
+- Tensorcore version
 - Tensorcore - pipeline version
 - Tensorcore - pipeline version with selected input output indexes
+- baseline CUTLASS

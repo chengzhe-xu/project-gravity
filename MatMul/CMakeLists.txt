@@ -52,6 +52,16 @@ set_target_properties(matrix_mul_lib_simt PROPERTIES
 )
 target_link_libraries(matrix_mul_lib_simt PRIVATE matrix_mul_lib_common_helpers)
 
+# SIMT with pipeline version
+add_library(matrix_mul_lib_simt_pipeline STATIC src/matrix_mul_simt_pipeline.cu)
+set_target_properties(matrix_mul_lib_simt_pipeline PROPERTIES 
+    POSITION_INDEPENDENT_CODE ON
+    CUDA_VISIBILITY_PRESET "hidden"
+    CUDA_SEPARABLE_COMPILATION ON
+    CUDA_ARCHITECTURES 87
+)
+target_link_libraries(matrix_mul_lib_simt_pipeline PRIVATE matrix_mul_lib_common_helpers)
+
 add_library(matrix_mul_lib MODULE src/matrix_mul.cc)
 
 set_target_properties(matrix_mul_lib PROPERTIES 
@@ -64,4 +74,5 @@ set_target_properties(matrix_mul_lib PROPERTIES
 target_link_libraries(matrix_mul_lib PRIVATE matrix_mul_lib_naive)
 target_link_libraries(matrix_mul_lib PRIVATE matrix_mul_lib_half)
 target_link_libraries(matrix_mul_lib PRIVATE matrix_mul_lib_simt)
+target_link_libraries(matrix_mul_lib PRIVATE matrix_mul_lib_simt_pipeline)
 target_link_libraries(matrix_mul_lib PRIVATE pybind11::module)
