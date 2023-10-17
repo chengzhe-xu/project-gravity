@@ -24,6 +24,26 @@
 
 #define MATMUL_THREAD(a_share, b_share) \
 { \
+    unsigned int from_As[8] = { \
+        16*((warp_row*32 + thread_row*8 + 0)%8) + (warp_row*32 + thread_row*8 + 0)/8, \
+        16*((warp_row*32 + thread_row*8 + 1)%8) + (warp_row*32 + thread_row*8 + 1)/8, \
+        16*((warp_row*32 + thread_row*8 + 2)%8) + (warp_row*32 + thread_row*8 + 2)/8, \
+        16*((warp_row*32 + thread_row*8 + 3)%8) + (warp_row*32 + thread_row*8 + 3)/8, \
+        16*((warp_row*32 + thread_row*8 + 4)%8) + (warp_row*32 + thread_row*8 + 4)/8, \
+        16*((warp_row*32 + thread_row*8 + 5)%8) + (warp_row*32 + thread_row*8 + 5)/8, \
+        16*((warp_row*32 + thread_row*8 + 6)%8) + (warp_row*32 + thread_row*8 + 6)/8, \
+        16*((warp_row*32 + thread_row*8 + 7)%8) + (warp_row*32 + thread_row*8 + 7)/8, \
+    }; \
+    unsigned int from_Bs[8] = { \
+        16*((warp_col*64 + thread_col*8 + 0)%8) + (warp_col*64 + thread_col*8 + 0)/8, \
+        16*((warp_col*64 + thread_col*8 + 1)%8) + (warp_col*64 + thread_col*8 + 1)/8, \ 
+        16*((warp_col*64 + thread_col*8 + 2)%8) + (warp_col*64 + thread_col*8 + 2)/8, \
+        16*((warp_col*64 + thread_col*8 + 3)%8) + (warp_col*64 + thread_col*8 + 3)/8, \
+        16*((warp_col*64 + thread_col*8 + 4)%8) + (warp_col*64 + thread_col*8 + 4)/8, \
+        16*((warp_col*64 + thread_col*8 + 5)%8) + (warp_col*64 + thread_col*8 + 5)/8, \
+        16*((warp_col*64 + thread_col*8 + 6)%8) + (warp_col*64 + thread_col*8 + 6)/8, \
+        16*((warp_col*64 + thread_col*8 + 7)%8) + (warp_col*64 + thread_col*8 + 7)/8, \
+    }; \
     _Pragma("unroll") \
     for (int i_inner_step=0; i_inner_step<8; ++i_inner_step) { \
         __half2 pA[8], pB[8]; \
@@ -148,27 +168,6 @@ __global__ void matrix_mul_smit_pipeline_kernel_128x128(__half2* matA, __half2* 
         // load sub A, B matrix
         LDG2S(As, Bs)
         __syncthreads();
-        // set the inner for loop initial value
-        unsigned int from_As[8] = {
-            16*((warp_row*32 + thread_row*8 + 0)%8) + (warp_row*32 + thread_row*8 + 0)/8,
-            16*((warp_row*32 + thread_row*8 + 1)%8) + (warp_row*32 + thread_row*8 + 1)/8,
-            16*((warp_row*32 + thread_row*8 + 2)%8) + (warp_row*32 + thread_row*8 + 2)/8,
-            16*((warp_row*32 + thread_row*8 + 3)%8) + (warp_row*32 + thread_row*8 + 3)/8,
-            16*((warp_row*32 + thread_row*8 + 4)%8) + (warp_row*32 + thread_row*8 + 4)/8,
-            16*((warp_row*32 + thread_row*8 + 5)%8) + (warp_row*32 + thread_row*8 + 5)/8,
-            16*((warp_row*32 + thread_row*8 + 6)%8) + (warp_row*32 + thread_row*8 + 6)/8,
-            16*((warp_row*32 + thread_row*8 + 7)%8) + (warp_row*32 + thread_row*8 + 7)/8,
-        };
-        unsigned int from_Bs[8] = {
-            16*((warp_col*64 + thread_col*8 + 0)%8) + (warp_col*64 + thread_col*8 + 0)/8,
-            16*((warp_col*64 + thread_col*8 + 1)%8) + (warp_col*64 + thread_col*8 + 1)/8,
-            16*((warp_col*64 + thread_col*8 + 2)%8) + (warp_col*64 + thread_col*8 + 2)/8,
-            16*((warp_col*64 + thread_col*8 + 3)%8) + (warp_col*64 + thread_col*8 + 3)/8,
-            16*((warp_col*64 + thread_col*8 + 4)%8) + (warp_col*64 + thread_col*8 + 4)/8,
-            16*((warp_col*64 + thread_col*8 + 5)%8) + (warp_col*64 + thread_col*8 + 5)/8,
-            16*((warp_col*64 + thread_col*8 + 6)%8) + (warp_col*64 + thread_col*8 + 6)/8,
-            16*((warp_col*64 + thread_col*8 + 7)%8) + (warp_col*64 + thread_col*8 + 7)/8,
-        };
         MATMUL_THREAD(As, Bs)
         __syncthreads();
     }
