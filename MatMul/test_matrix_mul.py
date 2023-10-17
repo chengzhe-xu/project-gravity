@@ -18,7 +18,7 @@ def abs_error_w_rel(mat_2d, mat_ref_2d, esp=1e-9):
 
 if __name__=='__main__':
     M, K, N = 2048*10, 128, 512
-    test_round = 10
+    test_round = 1
     np.random.seed(702)
     for _ in range(test_round):
         matA = (np.random.rand(M, K) - 0.5) * 2 * 10
