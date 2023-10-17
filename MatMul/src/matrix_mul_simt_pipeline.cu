@@ -25,7 +25,7 @@
 #define MATMUL_THREAD(a_share, b_share) \
 { \
     _Pragma("unroll") \
-    for (int i_inner_step=0; i_inner_step<8; ++i_inner_step) { 
+    for (int i_inner_step=0; i_inner_step<8; ++i_inner_step) { \
         __half2 pA[8], pB[8]; \
         _Pragma("unroll") \
         for (int i=0; i<8; ++i){ \
