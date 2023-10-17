@@ -91,13 +91,12 @@ __global__ void matrix_mul_smit_kernel_128x128(__half2* matA, __half2* matBT, __
                          As + (thread_id%8) * (128+LD_buffer) + (( 4*(thread_id/8)+1 )%8) * 16 + ( 4*(thread_id/8)+1 )/8,
                          As + (thread_id%8) * (128+LD_buffer) + (( 4*(thread_id/8)+2 )%8) * 16 + ( 4*(thread_id/8)+2 )/8,
                          As + (thread_id%8) * (128+LD_buffer) + (( 4*(thread_id/8)+3 )%8) * 16 + ( 4*(thread_id/8)+3 )/8};
-    __half2* from_b = matBT + (block_col*128 + 4*thread_id/8) * (K/2) + thread_id%8; 
+    __half2* from_b = matBT + (block_col*128 + 4*(thread_id/8)) * (K/2) + thread_id%8; 
     __half2* to_Bs[4] = {Bs + (thread_id%8) * (128+LD_buffer) + (( 4*(thread_id/8)+0 )%8) * 16 + ( 4*(thread_id/8)+0 )/8,
                          Bs + (thread_id%8) * (128+LD_buffer) + (( 4*(thread_id/8)+1 )%8) * 16 + ( 4*(thread_id/8)+1 )/8,
                          Bs + (thread_id%8) * (128+LD_buffer) + (( 4*(thread_id/8)+2 )%8) * 16 + ( 4*(thread_id/8)+2 )/8,
                          Bs + (thread_id%8) * (128+LD_buffer) + (( 4*(thread_id/8)+3 )%8) * 16 + ( 4*(thread_id/8)+3 )/8};
     // TODO: maybe too much register occupied, bad for occupacy rate
-
     // outer loop
     #pragma unroll
     for (int i_step=0; i_step<K/16; ++i_step) {
@@ -152,29 +151,6 @@ __global__ void matrix_mul_smit_kernel_128x128(__half2* matA, __half2* matBT, __
             for (int i=0; i<8; ++i){
                 pA[i] = from_As[i][0];
                 pB[i] = from_Bs[i][0];
-            }
-            // bug: every odd inner lop, i_inner_step = 2, 4, 6...
-            // pB pointer is right-switched by 1
-            if (blockIdx.x == 9 && threadIdx.x == 75) {
-                printf("i_step, %d, i_inner_step, %d\n", i_step, i_inner_step);
-                // printf("pA: %f\n", __half2float(pA[0].x));
-                // for (int vis_i=0; vis_i<8; ++vis_i){
-                //     printf("%f, ", __half2float(pA[vis_i].x));
-                // }
-                // printf("\n");
-                // for (int vis_i=0; vis_i<8; ++vis_i){
-                //     printf("%f, ", __half2float(pA[vis_i].y));
-                // }
-                // printf("\n");
-                printf("pB: %f\n", __half2float(pB[0].x));
-                // for (int vis_i=0; vis_i<8; ++vis_i){
-                //     printf("%f, ", __half2float(pB[vis_i].x));
-                // }
-                // printf("\n");
-                // for (int vis_i=0; vis_i<8; ++vis_i){
-                //     printf("%f, ", __half2float(pB[vis_i].y));
-                // }
-                printf("\n");
             }
             half2matmulacc(acc, pA, pB);
             #pragma unroll
