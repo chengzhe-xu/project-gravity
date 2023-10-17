@@ -3,14 +3,19 @@
 
 // #define __HALF2_TO_UI(var) *(reinterpret_cast<unsigned int *>(&(var))) from cuda_fp16.hpp
 __device__ __forceinline__ void ldg128(const __half2* addr, __half2 &reg0, __half2 &reg1, __half2 &reg2, __half2 &reg3){
+    unsigned int reg0_ui, reg1_ui, reg2_ui, reg3_ui;
     asm volatile(
-        "ld.global.nc.v4.b32 {%1, %2, %3, %4}, [%0];\n"
-        : "=r"(*(reinterpret_cast<unsigned int *>(&(reg0)))),
-          "=r"(*(reinterpret_cast<unsigned int *>(&(reg1)))),
-          "=r"(*(reinterpret_cast<unsigned int *>(&(reg2)))),
-          "=r"(*(reinterpret_cast<unsigned int *>(&(reg3))))
+        "ld.global.nc.v4.b32 {%0, %1, %2, %3}, [%4];\n"
+        : "=r"(reg0_ui),
+          "=r"(reg1_ui),
+          "=r"(reg2_ui),
+          "=r"(reg3_ui)
         : "l"(addr)
     );
+    reg0 = *(reinterpret_cast<__half2 *>(&reg0_ui));
+    reg1 = *(reinterpret_cast<__half2 *>(&reg1_ui));
+    reg2 = *(reinterpret_cast<__half2 *>(&reg2_ui));
+    reg3 = *(reinterpret_cast<__half2 *>(&reg3_ui));
 }
 
 __device__ __forceinline__ void stg128(__half2* addr, __half2 &reg0, __half2 &reg1, __half2 &reg2, __half2 &reg3) {
@@ -18,10 +23,10 @@ __device__ __forceinline__ void stg128(__half2* addr, __half2 &reg0, __half2 &re
         "st.global.v4.b32 [%0], {%1, %2, %3, %4};\n"
         :
         : "l"(addr),
-          "r"(*(reinterpret_cast<unsigned int *>(&(reg0)))),
-          "r"(*(reinterpret_cast<unsigned int *>(&(reg1)))),
-          "r"(*(reinterpret_cast<unsigned int *>(&(reg2)))),
-          "r"(*(reinterpret_cast<unsigned int *>(&(reg3))))
+          "r"(*(reinterpret_cast<unsigned int *>(&reg0))),
+          "r"(*(reinterpret_cast<unsigned int *>(&reg1))),
+          "r"(*(reinterpret_cast<unsigned int *>(&reg2))),
+          "r"(*(reinterpret_cast<unsigned int *>(&reg3)))
     );
 }
 
