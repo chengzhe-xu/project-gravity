@@ -134,11 +134,13 @@ __global__ void matrix_mul_smit_pipeline_kernel_128x128(__half2* matA, __half2* 
     const unsigned int LD_buffer = 8;
 
     // shared memory
-    __shared__ __align__(16 * 1024) char smem[9 * 1024];
+    __shared__ __align__(16 * 1024) char smem[18 * 1024];
     // As/Bs needs 128 * 16 * half = 128 * 16 * 16 bits = 32768 bits = 32768 / 8 char = 4096 char
     // add the LD_buffer: need 4352 char = 4.25 k ==> 4.5 k
-    __half2* As = reinterpret_cast<__half2 *>(smem);
-    __half2* Bs = reinterpret_cast<__half2 *>(smem + 4608);
+    __half2* As[2] = {reinterpret_cast<__half2 *>(smem),
+                    reinterpret_cast<__half2 *>(smem + 4608)};
+    __half2* Bs[2] = {reinterpret_cast<__half2 *>(smem + 4608*2),
+                    reinterpret_cast<__half2 *>(smem + 4608*3)};
     // TODO: what is the __align__ used for and why we add some buffer into the share memory?
 
     __half2 acc[8][4];
@@ -162,15 +164,20 @@ __global__ void matrix_mul_smit_pipeline_kernel_128x128(__half2* matA, __half2* 
                             (thread_id%8) * (128+LD_buffer) + (( 4*(thread_id/8)+3 )%8) * 16 + ( 4*(thread_id/8)+3 )/8};
     // TODO: maybe too much register occupied, bad for occupacy rate
     // outer loop
-    // TODO: maybe too much register occupied, bad for occupacy rate
+    LDG2S(As[0], Bs[0])
+    __syncthreads();
+    unsigned int pipeline_indicator = 0;
     #pragma unroll
-    for (int i_step=0; i_step<K/16; ++i_step) {
+    for (int i_step=0; i_step<K/16-1; ++i_step) {
         // load sub A, B matrix
-        LDG2S(As, Bs)
+        LDG2S(As[1-pipeline_indicator], Bs[1-pipeline_indicator])
         __syncthreads();
-        MATMUL_THREAD(As, Bs)
+        MATMUL_THREAD(As[pipeline_indicator], Bs[pipeline_indicator])
         __syncthreads();
+        pipeline_indicator = 1 - pipeline_indicator;
     }
+    MATMUL_THREAD(As[pipeline_indicator], Bs[pipeline_indicator])
+    __syncthreads();
     // write back to C
     __half2* to_c = matC + (block_row*128 + warp_row*32 + thread_row*8) * (N/2) + block_col*128/2 + warp_col*64/2 + thread_col*8/2;
     #pragma unroll
