@@ -88,11 +88,11 @@ __global__ void matrix_mul_smit_kernel_128x128(__half2* matA, __half2* matBT, __
     __half2* from_c = matC + (block_row*128 + warp_row*32 + thread_row*8) * (N/2) + block_col*128/2 + warp_col*64/2 + thread_col*8/2;
     #pragma unroll
     for (int i=0; i<8; ++i) {
-        // ldg128(from_c+i*N/2, acc[i][0], acc[i][1], acc[i][2], acc[i][3]);
-        acc[i][0] = __ldg(from_c+i*N/2);
-        acc[i][1] = __ldg(from_c+i*N/2 + 1);
-        acc[i][2] = __ldg(from_c+i*N/2 + 2);
-        acc[i][3] = __ldg(from_c+i*N/2 + 3);
+        ldg128(from_c+i*N/2, acc[i][0], acc[i][1], acc[i][2], acc[i][3]);
+        // acc[i][0] = __ldg(from_c+i*N/2);
+        // acc[i][1] = __ldg(from_c+i*N/2 + 1);
+        // acc[i][2] = __ldg(from_c+i*N/2 + 2);
+        // acc[i][3] = __ldg(from_c+i*N/2 + 3);
     }
     // __syncthreads();
 
@@ -153,7 +153,6 @@ __global__ void matrix_mul_smit_kernel_128x128(__half2* matA, __half2* matBT, __
             Bs + 16*((warp_col*64 + thread_col*8 + 7)%8) + (warp_col*64 + thread_col*8 + 7)/8,
         };
         // TODO: maybe too much register occupied, bad for occupacy rate
-
         // inner loop
         #pragma unroll
         for (int i_inner_step=0; i_inner_step<8; ++i_inner_step) {
@@ -177,11 +176,11 @@ __global__ void matrix_mul_smit_kernel_128x128(__half2* matA, __half2* matBT, __
     __half2* to_c = matC + (block_row*128 + warp_row*32 + thread_row*8) * (N/2) + block_col*128/2 + warp_col*64/2 + thread_col*8/2;
     #pragma unroll
     for (int i=0; i<8; ++i) {
-        // stg128(to_c+i*N/2, acc[i][0], acc[i][1], acc[i][2], acc[i][3]);
-        (to_c+i*N/2)[0] = acc[i][0];
-        (to_c+i*N/2)[1] = acc[i][1];
-        (to_c+i*N/2)[2] = acc[i][2];
-        (to_c+i*N/2)[3] = acc[i][3];
+        stg128(to_c+i*N/2, acc[i][0], acc[i][1], acc[i][2], acc[i][3]);
+        // (to_c+i*N/2)[0] = acc[i][0];
+        // (to_c+i*N/2)[1] = acc[i][1];
+        // (to_c+i*N/2)[2] = acc[i][2];
+        // (to_c+i*N/2)[3] = acc[i][3];
     }
     __syncthreads();
     return;
