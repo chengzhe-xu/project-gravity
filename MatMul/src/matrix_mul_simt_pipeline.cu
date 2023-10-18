@@ -35,14 +35,17 @@
             pB[i] = (b_share+from_Bs+i)[0]; \
         } \
         _Pragma("unroll") \
-        for (int i=0; i<8; ++i) { \
+        for (int i=0; i<4; ++i) { \
             _Pragma("unroll") \
             for (int j=0; j<4; ++j) { \
-                __half2 tmp[3] = {__half2{pB[2*j].x, pB[2*j+1].y}, \
-                                __half2{pA[i].y, pA[i].x}, \
-                                __half2{pB[2*j].y, pB[2*j+1].x}}; \
-                acc[i][j] = __hfma2(pA[i], tmp[0], acc[i][j]); \
-                acc[i][j] = __hfma2(tmp[1], tmp[2], acc[i][j]); \
+                __half2 tmp[4] = {__half2{pB[2*j].x, pB[2*j+1].y}, \
+                                __half2{pA[2*i].y, pA[2*i].x}, \
+                                __half2{pB[2*j].y, pB[2*j+1].x}, \
+                                __half2{pA[2*i+1].y, pA[2*i+1].x}}; \
+                acc[2*i][j] = __hfma2(tmp[1], tmp[2], acc[2*i][j]); \
+                acc[2*i][j] = __hfma2(pA[2*i], tmp[0], acc[2*i][j]); \
+                acc[2*i+1][j] = __hfma2(tmp[3], tmp[2], acc[2*i+1][j]); \
+                acc[2*i+1][j] = __hfma2(pA[2*i+1], tmp[0], acc[2*i+1][j]); \
             } \
         } \
         from_As += (128+LD_buffer); \
