@@ -16,41 +16,23 @@
         __ldg(from_b + 3*K/2), \
     }; \
     _Pragma("unroll") \
-    for (int i=0; i<4; ++i) (a_share+to_As[i])[0] = tmp_a[i]; \
+    for (int i=0; i<4; ++i) (a_share+to_As+i)[0] = tmp_a[i]; \
     _Pragma("unroll") \
-    for (int i=0; i<4; ++i) (b_share+to_Bs[i])[0] = tmp_b[i]; \
+    for (int i=0; i<4; ++i) (b_share+to_Bs+i)[0] = tmp_b[i]; \
     from_a += 8; from_b += 8; \
 } \
 
 #define MATMUL_THREAD(a_share, b_share) \
 { \
-    unsigned int from_As[8] = { \
-        16*((warp_row*32 + thread_row*8 + 0)%8) + (warp_row*32 + thread_row*8 + 0)/8, \
-        16*((warp_row*32 + thread_row*8 + 1)%8) + (warp_row*32 + thread_row*8 + 1)/8, \
-        16*((warp_row*32 + thread_row*8 + 2)%8) + (warp_row*32 + thread_row*8 + 2)/8, \
-        16*((warp_row*32 + thread_row*8 + 3)%8) + (warp_row*32 + thread_row*8 + 3)/8, \
-        16*((warp_row*32 + thread_row*8 + 4)%8) + (warp_row*32 + thread_row*8 + 4)/8, \
-        16*((warp_row*32 + thread_row*8 + 5)%8) + (warp_row*32 + thread_row*8 + 5)/8, \
-        16*((warp_row*32 + thread_row*8 + 6)%8) + (warp_row*32 + thread_row*8 + 6)/8, \
-        16*((warp_row*32 + thread_row*8 + 7)%8) + (warp_row*32 + thread_row*8 + 7)/8, \
-    }; \
-    unsigned int from_Bs[8] = { \
-        16*((warp_col*64 + thread_col*8 + 0)%8) + (warp_col*64 + thread_col*8 + 0)/8, \
-        16*((warp_col*64 + thread_col*8 + 1)%8) + (warp_col*64 + thread_col*8 + 1)/8, \ 
-        16*((warp_col*64 + thread_col*8 + 2)%8) + (warp_col*64 + thread_col*8 + 2)/8, \
-        16*((warp_col*64 + thread_col*8 + 3)%8) + (warp_col*64 + thread_col*8 + 3)/8, \
-        16*((warp_col*64 + thread_col*8 + 4)%8) + (warp_col*64 + thread_col*8 + 4)/8, \
-        16*((warp_col*64 + thread_col*8 + 5)%8) + (warp_col*64 + thread_col*8 + 5)/8, \
-        16*((warp_col*64 + thread_col*8 + 6)%8) + (warp_col*64 + thread_col*8 + 6)/8, \
-        16*((warp_col*64 + thread_col*8 + 7)%8) + (warp_col*64 + thread_col*8 + 7)/8, \
-    }; \
+    unsigned int from_As = warp_row*32 + thread_row*8; \
+    unsigned int from_Bs = warp_col*64 + thread_col*8; \
     _Pragma("unroll") \
     for (int i_inner_step=0; i_inner_step<8; ++i_inner_step) { \
         __half2 pA[8], pB[8]; \
         _Pragma("unroll") \
         for (int i=0; i<8; ++i){ \
-            pA[i] = (a_share+from_As[i])[0]; \
-            pB[i] = (b_share+from_Bs[i])[0]; \
+            pA[i] = (a_share+from_As+i)[0]; \
+            pB[i] = (b_share+from_Bs+i)[0]; \
         } \
         _Pragma("unroll") \
         for (int i=0; i<8; ++i) { \
@@ -63,11 +45,8 @@
                 acc[i][j] = __hfma2(tmp[1], tmp[2], acc[i][j]); \
             } \
         } \
-        _Pragma("unroll") \
-        for (int i=0; i<8; ++i){ \
-            from_As[i] += (128+LD_buffer); \
-            from_Bs[i] += (128+LD_buffer); \
-        } \
+        from_As += (128+LD_buffer); \
+        from_Bs += (128+LD_buffer); \
     } \
 } \
 
@@ -153,16 +132,9 @@ __global__ void matrix_mul_smit_pipeline_kernel_128x128(__half2* matA, __half2* 
 
     // set the outer for loop initial value
     __half2* from_a = matA + (block_row*128 + 4*(thread_id/8)) * (K/2) + thread_id%8;
-    unsigned int to_As[4] = {(thread_id%8) * (128+LD_buffer) + (( 4*(thread_id/8)+0 )%8) * 16 + ( 4*(thread_id/8)+0 )/8,
-                            (thread_id%8) * (128+LD_buffer) + (( 4*(thread_id/8)+1 )%8) * 16 + ( 4*(thread_id/8)+1 )/8,
-                            (thread_id%8) * (128+LD_buffer) + (( 4*(thread_id/8)+2 )%8) * 16 + ( 4*(thread_id/8)+2 )/8,
-                            (thread_id%8) * (128+LD_buffer) + (( 4*(thread_id/8)+3 )%8) * 16 + ( 4*(thread_id/8)+3 )/8};
+    unsigned int to_As = (thread_id%8) * (128+LD_buffer) + 4*(thread_id/8);
     __half2* from_b = matBT + (block_col*128 + 4*(thread_id/8)) * (K/2) + thread_id%8; 
-    unsigned int to_Bs[4] = {(thread_id%8) * (128+LD_buffer) + (( 4*(thread_id/8)+0 )%8) * 16 + ( 4*(thread_id/8)+0 )/8,
-                            (thread_id%8) * (128+LD_buffer) + (( 4*(thread_id/8)+1 )%8) * 16 + ( 4*(thread_id/8)+1 )/8,
-                            (thread_id%8) * (128+LD_buffer) + (( 4*(thread_id/8)+2 )%8) * 16 + ( 4*(thread_id/8)+2 )/8,
-                            (thread_id%8) * (128+LD_buffer) + (( 4*(thread_id/8)+3 )%8) * 16 + ( 4*(thread_id/8)+3 )/8};
-    // TODO: maybe too much register occupied, bad for occupacy rate
+    unsigned int to_Bs = (thread_id%8) * (128+LD_buffer) + 4*(thread_id/8);
     // outer loop
     LDG2S(As[0], Bs[0])
     __syncthreads();
