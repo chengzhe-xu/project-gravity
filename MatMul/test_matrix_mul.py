@@ -56,8 +56,13 @@ if __name__=='__main__':
         if not args.is_profile:
             simt_pipeline_abs_err, simt_pipeline_abs_rel, smit_pipeline_rel_err = abs_error_w_rel(matC_simt_pipeline_exp.copy(), matC_ref.astype(np.float16).copy())
 
+        matC_tensorcore_exp = matrix_mul_lib.mat_mul_tensorcore(matA.astype(np.float16), matB.T.astype(np.float16), matC.copy().astype(np.float16), M, N, K)
         if not args.is_profile:
-            print(f"naive version max abs err:\t{naive_abs_err} ({100*naive_abs_rel}%)")
-            print(f"half version max abs err:\t{half_abs_err} ({100*half_abs_rel}%)")
-            print(f"SIMT version max abs err:\t{simt_abs_err} ({100*simt_abs_rel}%)")
-            print(f"SIMT with pipeline version max abs err:\t{simt_pipeline_abs_err} ({100*simt_pipeline_abs_rel}%)")
+            tensorcore_abs_err, tensorcore_abs_rel, tensorcore_rel_err = abs_error_w_rel(matC_tensorcore_exp.copy(), matC_ref.astype(np.float16).copy())
+
+        if not args.is_profile:
+            print(f"naive version max abs err:\t\t\t{naive_abs_err} ({100*naive_abs_rel}%)")
+            print(f"half version max abs err:\t\t\t{half_abs_err} ({100*half_abs_rel}%)")
+            print(f"SIMT version max abs err:\t\t\t{simt_abs_err} ({100*simt_abs_rel}%)")
+            print(f"SIMT with pipeline version max abs err:\t\t{simt_pipeline_abs_err} ({100*simt_pipeline_abs_rel}%)")
+            print(f"tensorcore version max abs err:\t\t\t{tensorcore_abs_err} ({100*tensorcore_abs_rel}%)")
