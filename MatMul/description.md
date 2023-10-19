@@ -24,6 +24,7 @@ The following versions are implemented:
   - c++ inline assumble and force inline?
 - SIMT - pipeline version
 - Tensorcore version
-- Tensorcore - pipeline version
-- Tensorcore - pipeline version with selected input output indexes
+  - with pipeline
+  - reference: https://github.com/jin-yc10/sparse_gemm/tree/master @jin-yc10
+- Tensorcore with selected input output indexes (spconv)
 - baseline CUTLASS

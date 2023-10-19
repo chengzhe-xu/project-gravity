@@ -5,6 +5,7 @@
 #include <cuda_runtime.h>
 #include <cuda_fp16.h>
 #include <eigen3/Eigen/Dense>
+#include <mma.h>
 
 __global__ void cast_kernel_float2half(__half* arr_h, float* arr, const int arr_size);
 __global__ void cast_kernel_half2float(float* arr, __half* arr_h, const int arr_size);
