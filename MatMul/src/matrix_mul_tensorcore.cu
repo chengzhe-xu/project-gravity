@@ -164,7 +164,7 @@ __global__ void matrix_mul_tensorcore_kernel_128x128(__half2* matA, __half2* mat
         }
     }
     __syncthreads();
-    __half2* Cs = reinterpret_cast<__half2 *>(As);
+    __half2* Cs = reinterpret_cast<__half2 *>(As[0]);
     // write back to C
     __half2* from_Cs = Cs + (warp_row*32 + thread_row*8) * ((128+LD_buffer)/2) + warp_col*64/2 + thread_col*8/2;
     __half2* to_c = matC + (block_row*128 + warp_row*32 + thread_row*8) * (N/2) + block_col*128/2 + warp_col*64/2 + thread_col*8/2;
