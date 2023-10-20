@@ -146,7 +146,6 @@ __global__ void matrix_mul_smit_pipeline_kernel_128x128(__half2* matA, __half2* 
     for (int i_step=0; i_step<K/16-1; ++i_step) {
         // load sub A, B matrix
         LDG2S(As[1-pipeline_indicator], Bs[1-pipeline_indicator])
-        __syncthreads();
         MATMUL_THREAD(As[pipeline_indicator], Bs[pipeline_indicator])
         __syncthreads();
         pipeline_indicator = 1 - pipeline_indicator;

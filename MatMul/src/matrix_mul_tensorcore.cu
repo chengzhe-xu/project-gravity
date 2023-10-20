@@ -107,32 +107,28 @@ __global__ void matrix_mul_tensorcore_kernel_128x128(__half2* matA, __half2* mat
     fragA_t frag_a[2];
     fragB_t frag_b[4];
     fragAcc_t frag_acc[2][4];
+    __half* matC_h = reinterpret_cast<__half *>(matC) + (block_row*128 + warp_row*32) * N + block_col*128 + warp_col*64;
     #pragma unroll
     for (int i=0; i<2; ++i) {
         #pragma unroll
-        for (int j=0; j<4; ++j) nvcuda::wmma::fill_fragment(frag_acc[i][j], __half(0.0));
+        for (int j=0; j<4; ++j) {
+            // nvcuda::wmma::fill_fragment(frag_acc[i][j], __half(0.0));
+            nvcuda::wmma::load_matrix_sync(frag_acc[i][j], matC_h + i*16*N + j*16, N, nvcuda::wmma::mem_row_major);
+        }
     }
 
     const unsigned int LD_buffer = 16;
 
     // shared memory
-    __shared__ __align__(16 * 1024) char smem[48 * 1024];
+    __shared__ __align__(4 * 1024) char smem[20 * 1024];
     // As/Bs needs 128 * 16 * half = 128 * 16 * 16 bits = 32768 bits = 32768 / 8 char = 4096 char
     // add the LD_buffer: need 4352 char = 4.25 k ==> 4.5 k
-    // Cs needs 128 * (128 + LD_buffer) * half = 36864 = 36 k
+    // Cs needs 128 * (128 + LD_buffer) * half = 36864 = 36 k --- now we do not use share memory as a intermedia for acc
     __half* As[2] = {reinterpret_cast<__half *>(smem),
                     reinterpret_cast<__half *>(smem + 4608)};
     __half* Bs[2] = {reinterpret_cast<__half *>(smem + 4608*2),
                     reinterpret_cast<__half *>(smem + 4608*3)};
     // TODO: what is the __align__ used for and why we add some buffer into the share memory?
-
-    __half2 acc[8][4];
-    // load C into the acc
-    __half2* from_c = matC + (block_row*128 + warp_row*32 + thread_row*8) * (N/2) + block_col*128/2 + warp_col*64/2 + thread_col*8/2;
-    #pragma unroll
-    for (int i=0; i<8; ++i) {
-        ldg128(from_c+i*N/2, acc[i][0], acc[i][1], acc[i][2], acc[i][3]);
-    }
 
     // set the outer for loop initial value
     __half2* from_a = matA + (block_row*128 + 4*(thread_id/8)) * (K/2) + thread_id%8;
@@ -141,40 +137,22 @@ __global__ void matrix_mul_tensorcore_kernel_128x128(__half2* matA, __half2* mat
     unsigned int to_Bs = (thread_id%8) * 2 * (128+LD_buffer) + 4*(thread_id/8);
     // outer loop
     LDG2S(As[0], Bs[0])
-    __syncthreads();
     unsigned int pipeline_indicator = 0;
     #pragma unroll
     for (int i_step=0; i_step<K/16-1; ++i_step) {
         // load sub A, B matrix
+        __syncthreads();
         LDG2S(As[1-pipeline_indicator], Bs[1-pipeline_indicator])
-        __syncthreads();
         MATMUL_WMMA(As[pipeline_indicator], Bs[pipeline_indicator])
-        __syncthreads();
         pipeline_indicator = 1 - pipeline_indicator;
     }
     MATMUL_WMMA(As[pipeline_indicator], Bs[pipeline_indicator])
-    __syncthreads();
-    // add initial value
     #pragma unroll
     for (int i=0; i<2; ++i) {
         #pragma unroll
         for (int j=0; j<4; ++j) {
-            unsigned int to_Cs = (32*warp_row + 16*i)*(128+LD_buffer) + warp_col*64 + 16*j;
-            nvcuda::wmma::store_matrix_sync(As[0]+to_Cs, frag_acc[i][j], 128+LD_buffer, nvcuda::wmma::mem_row_major);
+            nvcuda::wmma::store_matrix_sync(matC_h + i*16*N + j*16, frag_acc[i][j], N, nvcuda::wmma::mem_row_major);
         }
-    }
-    __syncthreads();
-    __half2* Cs = reinterpret_cast<__half2 *>(As[0]);
-    // write back to C
-    __half2* from_Cs = Cs + (warp_row*32 + thread_row*8) * ((128+LD_buffer)/2) + warp_col*64/2 + thread_col*8/2;
-    __half2* to_c = matC + (block_row*128 + warp_row*32 + thread_row*8) * (N/2) + block_col*128/2 + warp_col*64/2 + thread_col*8/2;
-    #pragma unroll
-    for (int i=0; i<8; ++i) {
-        acc[i][0] = __hadd2(acc[i][0], from_Cs[i*((128+LD_buffer)/2)]);
-        acc[i][1] = __hadd2(acc[i][1], from_Cs[i*((128+LD_buffer)/2) + 1]);
-        acc[i][2] = __hadd2(acc[i][2], from_Cs[i*((128+LD_buffer)/2) + 2]);
-        acc[i][3] = __hadd2(acc[i][3], from_Cs[i*((128+LD_buffer)/2) + 3]);
-        stg128(to_c+i*N/2, acc[i][0], acc[i][1], acc[i][2], acc[i][3]);
     }
     __syncthreads();
     return;
