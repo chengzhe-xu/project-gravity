@@ -3,27 +3,18 @@
 
 #define LDG2S(a_share, b_share) \
 { \
-    __half2 tmp_a[4] = { \
-        __ldg(from_a), \
-        __ldg(from_a + 1*K/2), \
-        __ldg(from_a + 2*K/2), \
-        __ldg(from_a + 3*K/2) \
-    }; \
-    __half2 tmp_b[4] = { \
-        __ldg(from_b), \
-        __ldg(from_b + 1*K/2), \
-        __ldg(from_b + 2*K/2), \
-        __ldg(from_b + 3*K/2), \
-    }; \
+    __half2 tmp_a[4], tmp_b[4]; \
+    ldg128(from_a, tmp_a[0], tmp_a[1], tmp_a[2], tmp_a[3]); \
+    ldg128(from_b, tmp_b[0], tmp_b[1], tmp_b[2], tmp_b[3]); \
     _Pragma("unroll") \
     for (int i=0; i<4; ++i){ \
-        (a_share+to_As+i)[0] = tmp_a[i].x; \
-        (a_share+to_As+i)[128+LD_buffer] = tmp_a[i].y; \
+        (a_share+to_ABs+i*2*(128+LD_buffer))[0] = tmp_a[i].x; \
+        (a_share+to_ABs+(i*2+1)*(128+LD_buffer))[0] = tmp_a[i].y; \
     } \
     _Pragma("unroll") \
     for (int i=0; i<4; ++i) { \
-        (b_share+to_Bs+i)[0] = tmp_b[i].x; \
-        (b_share+to_Bs+i)[128+LD_buffer] = tmp_b[i].y; \
+        (b_share+to_ABs+i*2*(128+LD_buffer))[0] = tmp_b[i].x; \
+        (b_share+to_ABs+(i*2+1)*(128+LD_buffer))[0] = tmp_b[i].y; \
     } \
     from_a += 8; from_b += 8; \
 } \
@@ -131,10 +122,9 @@ __global__ void matrix_mul_tensorcore_kernel_128x128(__half2* matA, __half2* mat
     // TODO: what is the __align__ used for and why we add some buffer into the share memory?
 
     // set the outer for loop initial value
-    __half2* from_a = matA + (block_row*128 + 4*(thread_id/8)) * (K/2) + thread_id%8;
-    unsigned int to_As = (thread_id%8) * 2 * (128+LD_buffer) + 4*(thread_id/8);
-    __half2* from_b = matBT + (block_col*128 + 4*(thread_id/8)) * (K/2) + thread_id%8; 
-    unsigned int to_Bs = (thread_id%8) * 2 * (128+LD_buffer) + 4*(thread_id/8);
+    __half2* from_a = matA + (block_row*128 + (thread_id/2)) * (K/2) + 4*(thread_id%2);
+    __half2* from_b = matBT + (block_col*128 + (thread_id/2)) * (K/2) + 4*(thread_id%2); 
+    unsigned int to_ABs = (thread_id%2) * 8 * (128+LD_buffer) + (thread_id/2);
     // outer loop
     LDG2S(As[0], Bs[0])
     unsigned int pipeline_indicator = 0;
