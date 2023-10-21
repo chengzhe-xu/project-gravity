@@ -29,7 +29,7 @@ def argument_parser():
 if __name__=='__main__':
     args = argument_parser()
     M, K, N = args.M, args.K, args.N
-    np.random.seed(702)
+    np.random.seed(np.random.randint(7))
     for _ in range(args.test_round):
         matA = (np.random.rand(M, K) - 0.5) * 2 * 10
         matB = (np.random.rand(K, N) - 0.5) * 2 * 10
