@@ -116,9 +116,9 @@ __global__ void matrix_mul_tensorcore_kernel_128x128(__half2* matA, __half2* mat
     // add the LD_buffer: need 4352 char = 4.25 k ==> 4.5 k
     // Cs needs 128 * (128 + LD_buffer) * half = 36864 = 36 k --- now we do not use share memory as a intermedia for acc
     __half* As[2] = {reinterpret_cast<__half *>(smem),
-                    reinterpret_cast<__half *>(smem + 4608)};
-    __half* Bs[2] = {reinterpret_cast<__half *>(smem + 4608*2),
-                    reinterpret_cast<__half *>(smem + 4608*3)};
+                    reinterpret_cast<__half *>(smem + 5120)};
+    __half* Bs[2] = {reinterpret_cast<__half *>(smem + 5120*2),
+                    reinterpret_cast<__half *>(smem + 5120*3)};
     // TODO: what is the __align__ used for and why we add some buffer into the share memory?
 
     // set the outer for loop initial value
@@ -136,6 +136,7 @@ __global__ void matrix_mul_tensorcore_kernel_128x128(__half2* matA, __half2* mat
         MATMUL_WMMA(As[pipeline_indicator], Bs[pipeline_indicator])
         pipeline_indicator = 1 - pipeline_indicator;
     }
+    __syncthreads();
     MATMUL_WMMA(As[pipeline_indicator], Bs[pipeline_indicator])
     #pragma unroll
     for (int i=0; i<2; ++i) {
