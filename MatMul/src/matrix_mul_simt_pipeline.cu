@@ -78,7 +78,8 @@ __device__ __forceinline__ void stg128(__half2* addr, __half2 &reg0, __half2 &re
           "r"(*(reinterpret_cast<unsigned int *>(&reg3)))
     );
 }
-
+// https://forums.developer.nvidia.com/t/problem-about-ptx-instruction-cp-async-ca-shared-global/224219/2
+// https://forums.developer.nvidia.com/t/how-to-write-inline-asm-function-sts128-store-128-bits-to-shared-memory/270851/12
 __device__ __forceinline__ void sts128(__half2* addr, __half2 &reg0, __half2 &reg1, __half2 &reg2, __half2 &reg3){
     __half2* addr_shared_state = reinterpret_cast<__half2 *>(__cvta_generic_to_shared(addr));
     asm volatile(
@@ -109,19 +110,13 @@ __device__ __forceinline__ void lds128(__half2* addr, __half2 &reg0, __half2 &re
     reg3 = *(reinterpret_cast<__half2 *>(&reg3_ui));
 }
 
-// __device__ __forceinline__ void ldgsts32(const uint32_t &smem_addr,
-//                                          const void *gmem_ptr,
-//                                          const uint32_t &src_size, bool guard) {
-//     asm volatile (
-//         "{.reg .pred p;\n"
-//         " setp.ne.b32 p, %3, 0;\n"
-// #if __CUDACC_VER_MAJOR__ >= 11 && __CUDACC_VER_MINOR__ >= 4
-//         " @p cp.async.ca.shared.global.L2::128B [%0], [%1], 4, %2;}\n"
-// #else
-//         " @p cp.async.ca.shared.global [%0], [%1], 4, %2;}\n"
-// #endif
+// __device__ __forceinline__ void ldgsts32(__half2* shared_addr, __half2* global_addr, bool guard) {
+//     __half2* addr_shared_state = reinterpret_cast<__half2 *>(__cvta_generic_to_shared(shared_addr));
+//     asm volatile(
+//         "cp.async.ca.shared.global [%0], [%1], 4;}\n"
 //         :
-//         : "r"(smem_addr), "l"(gmem_ptr), "r"(src_size), "r"((int)guard)
+//         : "l"(addr_shared_state), 
+//           "l"(global_addr)
 //     );
 // }
 
