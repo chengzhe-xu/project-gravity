@@ -15,6 +15,7 @@ The main develop envs will be C/C++ & CUDA + Pybind with Python3.
 Content
 - Hello World with CUDA, and CUDA - pybind11
 - Matrix multiplication
+- Conv kernel
 - ...
 
 The project Envs.

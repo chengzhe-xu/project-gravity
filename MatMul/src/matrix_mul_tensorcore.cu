@@ -1,21 +1,39 @@
 #include "matrix_mul.cuh"
 #include "cuda_utils.h"
 
+// #define LDG2S(a_share, b_share) \
+// { \
+//     __half2 tmp_a[4], tmp_b[4]; \
+//     ldg128(from_a, tmp_a[0], tmp_a[1], tmp_a[2], tmp_a[3]); \
+//     ldg128(from_b, tmp_b[0], tmp_b[1], tmp_b[2], tmp_b[3]); \
+//     _Pragma("unroll") \
+//     for (int i=0; i<4; ++i){ \
+//         (a_share+to_ABs+i*2*(128+LD_buffer))[0] = tmp_a[i].x; \
+//         (a_share+to_ABs+(i*2+1)*(128+LD_buffer))[0] = tmp_a[i].y; \
+//     } \
+//     _Pragma("unroll") \
+//     for (int i=0; i<4; ++i) { \
+//         (b_share+to_ABs+i*2*(128+LD_buffer))[0] = tmp_b[i].x; \
+//         (b_share+to_ABs+(i*2+1)*(128+LD_buffer))[0] = tmp_b[i].y; \
+//     } \
+//     from_a += 8; from_b += 8; \
+// } \
+
 #define LDG2S(a_share, b_share) \
 { \
     __half2 tmp_a[4], tmp_b[4]; \
-    ldg128(from_a, tmp_a[0], tmp_a[1], tmp_a[2], tmp_a[3]); \
-    ldg128(from_b, tmp_b[0], tmp_b[1], tmp_b[2], tmp_b[3]); \
-    _Pragma("unroll") \
-    for (int i=0; i<4; ++i){ \
-        (a_share+to_ABs+i*2*(128+LD_buffer))[0] = tmp_a[i].x; \
-        (a_share+to_ABs+(i*2+1)*(128+LD_buffer))[0] = tmp_a[i].y; \
-    } \
-    _Pragma("unroll") \
-    for (int i=0; i<4; ++i) { \
-        (b_share+to_ABs+i*2*(128+LD_buffer))[0] = tmp_b[i].x; \
-        (b_share+to_ABs+(i*2+1)*(128+LD_buffer))[0] = tmp_b[i].y; \
-    } \
+    ldg64(from_a, tmp_a[0], tmp_a[1]); \
+    ldg64(from_a+K/2, tmp_a[2], tmp_a[3]); \
+    ldg64(from_b, tmp_b[0], tmp_b[1]); \
+    ldg64(from_b+K/2, tmp_b[2], tmp_b[3]); \
+    sts32(a_share+to_ABs,                   tmp_a[0].x, tmp_a[2].x); \
+    sts32(a_share+to_ABs+(128+LD_buffer),   tmp_a[0].y, tmp_a[2].y); \
+    sts32(a_share+to_ABs+2*(128+LD_buffer), tmp_a[1].x, tmp_a[3].x); \
+    sts32(a_share+to_ABs+3*(128+LD_buffer), tmp_a[1].y, tmp_a[3].y); \
+    sts32(b_share+to_ABs,                   tmp_b[0].x, tmp_b[2].x); \
+    sts32(b_share+to_ABs+(128+LD_buffer),   tmp_b[0].y, tmp_b[2].y); \
+    sts32(b_share+to_ABs+2*(128+LD_buffer), tmp_b[1].x, tmp_b[3].x); \
+    sts32(b_share+to_ABs+3*(128+LD_buffer), tmp_b[1].y, tmp_b[3].y); \
     from_a += 8; from_b += 8; \
 } \
 
@@ -32,6 +50,18 @@
 } \
 
 // #define __HALF2_TO_UI(var) *(reinterpret_cast<unsigned int *>(&(var))) from cuda_fp16.hpp
+__device__ __forceinline__ void ldg64(const __half2* addr, __half2 &reg0, __half2 &reg1){
+    unsigned int reg0_ui, reg1_ui;
+    asm volatile(
+        "ld.global.nc.v2.b32 {%0, %1}, [%2];\n"
+        : "=r"(reg0_ui),
+          "=r"(reg1_ui)
+        : "l"(addr)
+    );
+    reg0 = *(reinterpret_cast<__half2 *>(&reg0_ui));
+    reg1 = *(reinterpret_cast<__half2 *>(&reg1_ui));
+}
+
 __device__ __forceinline__ void ldg128(const __half2* addr, __half2 &reg0, __half2 &reg1, __half2 &reg2, __half2 &reg3){
     unsigned int reg0_ui, reg1_ui, reg2_ui, reg3_ui;
     asm volatile(
@@ -46,6 +76,16 @@ __device__ __forceinline__ void ldg128(const __half2* addr, __half2 &reg0, __hal
     reg1 = *(reinterpret_cast<__half2 *>(&reg1_ui));
     reg2 = *(reinterpret_cast<__half2 *>(&reg2_ui));
     reg3 = *(reinterpret_cast<__half2 *>(&reg3_ui));
+}
+
+__device__ __forceinline__ void sts32(const __half* addr, __half &reg0, __half &reg1){
+    asm volatile(
+        "st.shared.v2.b16 [%0], {%1, %2};\n"
+        :
+        : "l"(addr),
+          "h"(*(reinterpret_cast<unsigned short *>(&reg0))),
+          "h"(*(reinterpret_cast<unsigned short *>(&reg1)))
+    );
 }
 
 __device__ __forceinline__ void stg128(__half2* addr, __half2 &reg0, __half2 &reg1, __half2 &reg2, __half2 &reg3) {
@@ -122,9 +162,12 @@ __global__ void matrix_mul_tensorcore_kernel_128x128(__half2* matA, __half2* mat
     // TODO: what is the __align__ used for and why we add some buffer into the share memory?
 
     // set the outer for loop initial value
-    __half2* from_a = matA + (block_row*128 + (thread_id/2)) * (K/2) + 4*(thread_id%2);
-    __half2* from_b = matBT + (block_col*128 + (thread_id/2)) * (K/2) + 4*(thread_id%2); 
-    unsigned int to_ABs = (thread_id%2) * 8 * (128+LD_buffer) + (thread_id/2);
+    // __half2* from_a = matA + (block_row*128 + (thread_id/2)) * (K/2) + 4*(thread_id%2);
+    // __half2* from_b = matBT + (block_col*128 + (thread_id/2)) * (K/2) + 4*(thread_id%2); 
+    // unsigned int to_ABs = (thread_id%2) * 8 * (128+LD_buffer) + (thread_id/2);
+    __half2* from_a = matA + (block_row*128 + 2*(thread_id/4)) * (K/2) + 2*(thread_id%4);
+    __half2* from_b = matBT + (block_col*128 + 2*(thread_id/4)) * (K/2) + 2*(thread_id%4); 
+    unsigned int to_ABs = (thread_id%4) * 4 * (128+LD_buffer) + 2*(thread_id/4);
     // outer loop
     LDG2S(As[0], Bs[0])
     unsigned int pipeline_indicator = 0;

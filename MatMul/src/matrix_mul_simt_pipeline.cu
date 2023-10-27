@@ -15,10 +15,8 @@
         __ldg(from_b + 2*K/2), \
         __ldg(from_b + 3*K/2), \
     }; \
-    _Pragma("unroll") \
-    for (int i=0; i<4; ++i) (a_share+to_As+i)[0] = tmp_a[i]; \
-    _Pragma("unroll") \
-    for (int i=0; i<4; ++i) (b_share+to_Bs+i)[0] = tmp_b[i]; \
+    sts128(a_share+to_As, tmp_a[0], tmp_a[1], tmp_a[2], tmp_a[3]); \
+    sts128(b_share+to_Bs, tmp_b[0], tmp_b[1], tmp_b[2], tmp_b[3]); \
     from_a += 8; from_b += 8; \
 } \
 
@@ -73,6 +71,18 @@ __device__ __forceinline__ void ldg128(const __half2* addr, __half2 &reg0, __hal
 __device__ __forceinline__ void stg128(__half2* addr, __half2 &reg0, __half2 &reg1, __half2 &reg2, __half2 &reg3) {
     asm volatile(
         "st.global.v4.b32 [%0], {%1, %2, %3, %4};\n"
+        :
+        : "l"(addr),
+          "r"(*(reinterpret_cast<unsigned int *>(&reg0))),
+          "r"(*(reinterpret_cast<unsigned int *>(&reg1))),
+          "r"(*(reinterpret_cast<unsigned int *>(&reg2))),
+          "r"(*(reinterpret_cast<unsigned int *>(&reg3)))
+    );
+}
+
+__device__ __forceinline__ void sts128(__half2* addr, __half2 &reg0, __half2 &reg1, __half2 &reg2, __half2 &reg3){
+    asm volatile(
+        "st.shared.v4.b32 [%0], {%1, %2, %3, %4};\n"
         :
         : "l"(addr),
           "r"(*(reinterpret_cast<unsigned int *>(&reg0))),
