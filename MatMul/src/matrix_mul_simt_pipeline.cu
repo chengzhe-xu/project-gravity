@@ -92,6 +92,22 @@ __device__ __forceinline__ void sts128(__half2* addr, __half2 &reg0, __half2 &re
     );
 }
 
+// __device__ __forceinline__ void ldgsts32(const uint32_t &smem_addr,
+//                                          const void *gmem_ptr,
+//                                          const uint32_t &src_size, bool guard) {
+//     asm volatile (
+//         "{.reg .pred p;\n"
+//         " setp.ne.b32 p, %3, 0;\n"
+// #if __CUDACC_VER_MAJOR__ >= 11 && __CUDACC_VER_MINOR__ >= 4
+//         " @p cp.async.ca.shared.global.L2::128B [%0], [%1], 4, %2;}\n"
+// #else
+//         " @p cp.async.ca.shared.global [%0], [%1], 4, %2;}\n"
+// #endif
+//         :
+//         : "r"(smem_addr), "l"(gmem_ptr), "r"(src_size), "r"((int)guard)
+//     );
+// }
+
 /*
 This implementation is the SIMT core version.
 For each block, we assign 16*16 threads,
