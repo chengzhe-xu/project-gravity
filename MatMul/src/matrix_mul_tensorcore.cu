@@ -79,10 +79,11 @@ __device__ __forceinline__ void ldg128(const __half2* addr, __half2 &reg0, __hal
 }
 
 __device__ __forceinline__ void sts32(const __half* addr, __half &reg0, __half &reg1){
+    __half2* addr_shared_state = reinterpret_cast<__half2 *>(__cvta_generic_to_shared(addr));
     asm volatile(
         "st.shared.v2.b16 [%0], {%1, %2};\n"
         :
-        : "l"(addr),
+        : "l"(addr_shared_state),
           "h"(*(reinterpret_cast<unsigned short *>(&reg0))),
           "h"(*(reinterpret_cast<unsigned short *>(&reg1)))
     );

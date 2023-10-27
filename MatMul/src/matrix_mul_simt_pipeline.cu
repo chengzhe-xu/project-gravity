@@ -27,11 +27,10 @@
     _Pragma("unroll") \
     for (int i_inner_step=0; i_inner_step<8; ++i_inner_step) { \
         __half2 pA[8], pB[8]; \
-        _Pragma("unroll") \
-        for (int i=0; i<8; ++i){ \
-            pA[i] = (a_share+from_As+i)[0]; \
-            pB[i] = (b_share+from_Bs+i)[0]; \
-        } \
+        lds128(a_share+from_As, pA[0], pA[1], pA[2], pA[3]); \
+        lds128(a_share+from_As+4, pA[4], pA[5], pA[6], pA[7]); \
+        lds128(b_share+from_Bs, pB[0], pB[1], pB[2], pB[3]); \
+        lds128(b_share+from_Bs+4, pB[4], pB[5], pB[6], pB[7]); \
         _Pragma("unroll") \
         for (int i=0; i<4; ++i) { \
             _Pragma("unroll") \
@@ -81,15 +80,33 @@ __device__ __forceinline__ void stg128(__half2* addr, __half2 &reg0, __half2 &re
 }
 
 __device__ __forceinline__ void sts128(__half2* addr, __half2 &reg0, __half2 &reg1, __half2 &reg2, __half2 &reg3){
+    __half2* addr_shared_state = reinterpret_cast<__half2 *>(__cvta_generic_to_shared(addr));
     asm volatile(
         "st.shared.v4.b32 [%0], {%1, %2, %3, %4};\n"
         :
-        : "l"(addr),
+        : "l"(addr_shared_state),
           "r"(*(reinterpret_cast<unsigned int *>(&reg0))),
           "r"(*(reinterpret_cast<unsigned int *>(&reg1))),
           "r"(*(reinterpret_cast<unsigned int *>(&reg2))),
           "r"(*(reinterpret_cast<unsigned int *>(&reg3)))
     );
+}
+
+__device__ __forceinline__ void lds128(__half2* addr, __half2 &reg0, __half2 &reg1, __half2 &reg2, __half2 &reg3){
+    __half2* addr_shared_state = reinterpret_cast<__half2 *>(__cvta_generic_to_shared(addr));
+    unsigned int reg0_ui, reg1_ui, reg2_ui, reg3_ui;
+    asm volatile(
+        "ld.shared.v4.b32 {%0, %1, %2, %3}, [%4];\n"
+        : "=r"(reg0_ui),
+          "=r"(reg1_ui),
+          "=r"(reg2_ui),
+          "=r"(reg3_ui)
+        : "l"(addr_shared_state)
+    );
+    reg0 = *(reinterpret_cast<__half2 *>(&reg0_ui));
+    reg1 = *(reinterpret_cast<__half2 *>(&reg1_ui));
+    reg2 = *(reinterpret_cast<__half2 *>(&reg2_ui));
+    reg3 = *(reinterpret_cast<__half2 *>(&reg3_ui));
 }
 
 // __device__ __forceinline__ void ldgsts32(const uint32_t &smem_addr,
