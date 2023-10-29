@@ -1,6 +1,7 @@
 #include "matrix_mul.cuh"
 #include "cuda_utils.h"
 
+// We are not using A.T here, since in practice, A is feature, and might not be that convinient to get its transpose
 #define LDG2S(a_share, b_share) \
 { \
     __half2 tmp_a[4], tmp_b[4]; \
@@ -11,11 +12,7 @@
         (a_share+to_As+i*2*(128+LD_buffer))[0] = tmp_a[i].x; \
         (a_share+to_As+(i*2+1)*(128+LD_buffer))[0] = tmp_a[i].y; \
     } \
-    _Pragma("unroll") \
-    for (int i=0; i<4; ++i) { \
-        (b_share+to_Bs+i*2)[0] = tmp_b[i].x; \
-        (b_share+to_Bs+(i*2+1))[0] = tmp_b[i].y; \
-    } \
+    sts128(b_share+to_Bs, tmp_b[0], tmp_b[1], tmp_b[2], tmp_b[3]); \
     from_a += 8; from_b += (16*N)/2; \
 } \
 
@@ -60,14 +57,16 @@ __device__ __forceinline__ void ldg128(const __half2* addr, __half2 &reg0, __hal
     reg3 = *(reinterpret_cast<__half2 *>(&reg3_ui));
 }
 
-__device__ __forceinline__ void sts32(const __half* addr, __half &reg0, __half &reg1){
+__device__ __forceinline__ void sts128(__half* addr, __half2 &reg0, __half2 &reg1, __half2 &reg2, __half2 &reg3){
     __half2* addr_shared_state = reinterpret_cast<__half2 *>(__cvta_generic_to_shared(addr));
     asm volatile(
-        "st.shared.v2.b16 [%0], {%1, %2};\n"
+        "st.shared.v4.b32 [%0], {%1, %2, %3, %4};\n"
         :
         : "l"(addr_shared_state),
-          "h"(*(reinterpret_cast<unsigned short *>(&reg0))),
-          "h"(*(reinterpret_cast<unsigned short *>(&reg1)))
+          "r"(*(reinterpret_cast<unsigned int *>(&reg0))),
+          "r"(*(reinterpret_cast<unsigned int *>(&reg1))),
+          "r"(*(reinterpret_cast<unsigned int *>(&reg2))),
+          "r"(*(reinterpret_cast<unsigned int *>(&reg3)))
     );
 }
 
