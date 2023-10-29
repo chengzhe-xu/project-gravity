@@ -18,7 +18,7 @@
 
 #define LDG2S(a_share, b_share) \
 { \
-    __half2 tmp_a[4], tmp_b[4]; \
+    __half2 tmp_a[4]; \
     ldg128(from_a, tmp_a[0], tmp_a[1], tmp_a[2], tmp_a[3]); \
     _Pragma("unroll") \
     for (int i=0; i<4; ++i){ \
