@@ -60,7 +60,7 @@ if __name__=='__main__':
         if not args.is_profile:
             tensorcore_abs_err, tensorcore_abs_rel, tensorcore_rel_err = abs_error_w_rel(matC_tensorcore_exp.copy(), matC_ref.astype(np.float16).copy())
 
-        matC_cpasync_exp = matrix_mul_lib.mat_mul_cpasync(matA.astype(np.float16), matB.T.astype(np.float16), matC.copy().astype(np.float16), M, N, K)
+        matC_cpasync_exp = matrix_mul_lib.mat_mul_cpasync(matA.astype(np.float16), matB.astype(np.float16), matC.copy().astype(np.float16), M, N, K)
         if not args.is_profile:
             cpasync_abs_err, cpasync_abs_rel, cpasync_rel_err = abs_error_w_rel(matC_cpasync_exp.copy(), matC_ref.astype(np.float16).copy())
 

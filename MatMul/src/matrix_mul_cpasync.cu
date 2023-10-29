@@ -8,15 +8,15 @@
     ldg128(from_b, tmp_b[0], tmp_b[1], tmp_b[2], tmp_b[3]); \
     _Pragma("unroll") \
     for (int i=0; i<4; ++i){ \
-        (a_share+to_ABs+i*2*(128+LD_buffer))[0] = tmp_a[i].x; \
-        (a_share+to_ABs+(i*2+1)*(128+LD_buffer))[0] = tmp_a[i].y; \
+        (a_share+to_As+i*2*(128+LD_buffer))[0] = tmp_a[i].x; \
+        (a_share+to_As+(i*2+1)*(128+LD_buffer))[0] = tmp_a[i].y; \
     } \
     _Pragma("unroll") \
     for (int i=0; i<4; ++i) { \
-        (b_share+to_ABs+i*2*(128+LD_buffer))[0] = tmp_b[i].x; \
-        (b_share+to_ABs+(i*2+1)*(128+LD_buffer))[0] = tmp_b[i].y; \
+        (b_share+to_Bs+i*2)[0] = tmp_b[i].x; \
+        (b_share+to_Bs+(i*2+1))[0] = tmp_b[i].y; \
     } \
-    from_a += 8; from_b += 8; \
+    from_a += 8; from_b += (16*N)/2; \
 } \
 
 #define MATMUL_WMMA(a_share, b_share) \
@@ -156,11 +156,9 @@ __global__ void matrix_mul_cpasync_kernel_128x128(__half2* matA, __half2* matB, 
 
     // set the outer for loop initial value
     __half2* from_a = matA + (block_row*128 + (thread_id/2)) * (K/2) + 4*(thread_id%2);
-    __half2* from_b = matB + (block_col*128 + (thread_id/2)) * (K/2) + 4*(thread_id%2); 
-    unsigned int to_ABs = (thread_id%2) * 8 * (128+LD_buffer) + (thread_id/2);
-    // __half2* from_a = matA + (block_row*128 + 2*(thread_id/4)) * (K/2) + 2*(thread_id%4);
-    // __half2* from_b = matBT + (block_col*128 + 2*(thread_id/4)) * (K/2) + 2*(thread_id%4); 
-    // unsigned int to_ABs = (thread_id%4) * 4 * (128+LD_buffer) + 2*(thread_id/4);
+    __half2* from_b = matB + (thread_id/16) * (N/2) + block_col*(128/2) + 4*(thread_id%16); 
+    unsigned int to_As = (thread_id%2) * 8 * (128+LD_buffer) + (thread_id/2);
+    unsigned int to_Bs = (thread_id/16) * (128+LD_buffer) + 8 * (thread_id%16);
     // outer loop
     LDG2S(As[0], Bs[0])
     unsigned int pipeline_indicator = 0;
