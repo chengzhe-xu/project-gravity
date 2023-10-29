@@ -2,17 +2,30 @@
 #include "cuda_utils.h"
 
 // We are not using A.T here, since in practice, A is feature, and might not be that convinient to get its transpose
+// #define LDG2S(a_share, b_share) \
+// { \
+//     __half2 tmp_a[4], tmp_b[4]; \
+//     ldg128(from_a, tmp_a[0], tmp_a[1], tmp_a[2], tmp_a[3]); \
+//     ldg128(from_b, tmp_b[0], tmp_b[1], tmp_b[2], tmp_b[3]); \
+//     _Pragma("unroll") \
+//     for (int i=0; i<4; ++i){ \
+//         (a_share+to_As+i*2*(128+LD_buffer))[0] = tmp_a[i].x; \
+//         (a_share+to_As+(i*2+1)*(128+LD_buffer))[0] = tmp_a[i].y; \
+//     } \
+//     sts128(b_share+to_Bs, tmp_b[0], tmp_b[1], tmp_b[2], tmp_b[3]); \
+//     from_a += 8; from_b += (16*N)/2; \
+// } \
+
 #define LDG2S(a_share, b_share) \
 { \
     __half2 tmp_a[4], tmp_b[4]; \
     ldg128(from_a, tmp_a[0], tmp_a[1], tmp_a[2], tmp_a[3]); \
-    ldg128(from_b, tmp_b[0], tmp_b[1], tmp_b[2], tmp_b[3]); \
     _Pragma("unroll") \
     for (int i=0; i<4; ++i){ \
         (a_share+to_As+i*2*(128+LD_buffer))[0] = tmp_a[i].x; \
         (a_share+to_As+(i*2+1)*(128+LD_buffer))[0] = tmp_a[i].y; \
     } \
-    sts128(b_share+to_Bs, tmp_b[0], tmp_b[1], tmp_b[2], tmp_b[3]); \
+    ldgsts128(b_share+to_Bs, from_b); \
     from_a += 8; from_b += (16*N)/2; \
 } \
 
@@ -82,15 +95,16 @@ __device__ __forceinline__ void stg128(__half2* addr, __half2 &reg0, __half2 &re
     );
 }
 
-// __device__ __forceinline__ void ldgsts32(__half2* shared_addr, __half2* global_addr, bool guard) {
-//     __half2* addr_shared_state = reinterpret_cast<__half2 *>(__cvta_generic_to_shared(shared_addr));
-//     asm volatile(
-//         "cp.async.ca.shared.global [%0], [%1], 4;}\n"
-//         :
-//         : "l"(addr_shared_state), 
-//           "l"(global_addr)
-//     );
-// }
+// https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#data-movement-and-conversion-instructions-cp-async
+__device__ __forceinline__ void ldgsts128(__half* shared_addr, __half2* global_addr) {
+    __half2* addr_shared_state = reinterpret_cast<__half2 *>(__cvta_generic_to_shared(shared_addr));
+    asm volatile(
+        "cp.async.ca.shared.global [%0], [%1], 16;\n"
+        :
+        : "l"(addr_shared_state), 
+          "l"(global_addr)
+    );
+}
 
 /*
 This implementation is the SIMT core version.
