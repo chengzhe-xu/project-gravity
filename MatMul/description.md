@@ -26,5 +26,8 @@ The following versions are implemented:
 - Tensorcore version
   - with pipeline
   - reference: https://github.com/jin-yc10/sparse_gemm/tree/master @jin-yc10
+- cp.async version
+  - with tensorcore
+  - with pipeline
 - Tensorcore with selected input output indexes (spconv)
 - baseline CUTLASS

@@ -110,16 +110,6 @@ __device__ __forceinline__ void lds128(__half2* addr, __half2 &reg0, __half2 &re
     reg3 = *(reinterpret_cast<__half2 *>(&reg3_ui));
 }
 
-// __device__ __forceinline__ void ldgsts32(__half2* shared_addr, __half2* global_addr, bool guard) {
-//     __half2* addr_shared_state = reinterpret_cast<__half2 *>(__cvta_generic_to_shared(shared_addr));
-//     asm volatile(
-//         "cp.async.ca.shared.global [%0], [%1], 4;}\n"
-//         :
-//         : "l"(addr_shared_state), 
-//           "l"(global_addr)
-//     );
-// }
-
 /*
 This implementation is the SIMT core version.
 For each block, we assign 16*16 threads,

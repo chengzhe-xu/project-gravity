@@ -60,9 +60,14 @@ if __name__=='__main__':
         if not args.is_profile:
             tensorcore_abs_err, tensorcore_abs_rel, tensorcore_rel_err = abs_error_w_rel(matC_tensorcore_exp.copy(), matC_ref.astype(np.float16).copy())
 
+        matC_cpasync_exp = matrix_mul_lib.mat_mul_cpasync(matA.astype(np.float16), matB.T.astype(np.float16), matC.copy().astype(np.float16), M, N, K)
+        if not args.is_profile:
+            cpasync_abs_err, cpasync_abs_rel, cpasync_rel_err = abs_error_w_rel(matC_cpasync_exp.copy(), matC_ref.astype(np.float16).copy())
+
         if not args.is_profile:
             print(f"naive version max abs err:\t\t\t{naive_abs_err} ({100*naive_abs_rel}%)")
             print(f"half version max abs err:\t\t\t{half_abs_err} ({100*half_abs_rel}%)")
             print(f"SIMT version max abs err:\t\t\t{simt_abs_err} ({100*simt_abs_rel}%)")
             print(f"SIMT with pipeline version max abs err:\t\t{simt_pipeline_abs_err} ({100*simt_pipeline_abs_rel}%)")
             print(f"tensorcore version max abs err:\t\t\t{tensorcore_abs_err} ({100*tensorcore_abs_rel}%)")
+            print(f"cpasync version max abs err:\t\t\t{cpasync_abs_err} ({100*cpasync_abs_rel}%)")

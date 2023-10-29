@@ -20,3 +20,4 @@ matrix_template matrix_mul_half_host(const matrix_template& matAT, const matrix_
 matrix_template matrix_mul_smit_host(const matrix_template& matA, const matrix_template& matBT, matrix_template& matC, int M, int N, int K);
 matrix_template matrix_mul_smit_pipeline_host(const matrix_template& matA, const matrix_template& matBT, matrix_template& matC, int M, int N, int K);
 matrix_template matrix_mul_tensorcore_host(const matrix_template& matA, const matrix_template& matBT, matrix_template& matC, int M, int N, int K);
+matrix_template matrix_mul_cpasync_host(const matrix_template& matA, const matrix_template& matB, matrix_template& matC, int M, int N, int K);
