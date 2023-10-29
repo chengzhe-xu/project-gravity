@@ -99,11 +99,19 @@ __device__ __forceinline__ void stg128(__half2* addr, __half2 &reg0, __half2 &re
 __device__ __forceinline__ void ldgsts128(__half* shared_addr, __half2* global_addr) {
     __half2* addr_shared_state = reinterpret_cast<__half2 *>(__cvta_generic_to_shared(shared_addr));
     asm volatile(
-        "cp.async.ca.shared.global [%0], [%1], 16;\n"
+        "cp.async.ca.shared.global [%0], [%1], 16, 16;\n"
         :
         : "l"(addr_shared_state), 
           "l"(global_addr)
     );
+}
+
+// The executing thread can then use cp.async.wait_all or cp.async.wait_group or mbarrier instructions to wait for completion of 
+// the asynchronous copy operation.
+// No other synchronization mechanisms described in Memory Consistency Model can be used to guarantee the completion of the asynchronous copy operations.
+// https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#data-movement-and-conversion-instructions-cp-async-wait-group-cp-async-wait-all
+__device__ __forceinline__ void ldgsts_sync() {
+    asm volatile("cp.async.wait_all ;\n" : :);
 }
 
 /*
@@ -178,11 +186,13 @@ __global__ void matrix_mul_cpasync_kernel_128x128(__half2* matA, __half2* matB, 
     #pragma unroll
     for (int i_step=0; i_step<K/16-1; ++i_step) {
         // load sub A, B matrix
+        ldgsts_sync();
         __syncthreads();
         LDG2S(As[1-pipeline_indicator], Bs[1-pipeline_indicator])
         MATMUL_WMMA(As[pipeline_indicator], Bs[pipeline_indicator])
         pipeline_indicator = 1 - pipeline_indicator;
     }
+    ldgsts_sync();
     __syncthreads();
     MATMUL_WMMA(As[pipeline_indicator], Bs[pipeline_indicator])
     #pragma unroll
