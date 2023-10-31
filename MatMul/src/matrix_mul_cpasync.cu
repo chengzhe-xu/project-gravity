@@ -2,32 +2,32 @@
 #include "cuda_utils.h"
 
 // We are not using A.T here, since in practice, A is feature, and might not be that convinient to get its transpose
-#define LDG2S(a_share, b_share) \
-{ \
-    __half2 tmp_a[4], tmp_b[4]; \
-    ldg128(from_a, tmp_a[0], tmp_a[1], tmp_a[2], tmp_a[3]); \
-    ldg128(from_b, tmp_b[0], tmp_b[1], tmp_b[2], tmp_b[3]); \
-    _Pragma("unroll") \
-    for (int i=0; i<4; ++i){ \
-        (a_share+to_As+i*2*(128+LD_buffer))[0] = tmp_a[i].x; \
-        (a_share+to_As+(i*2+1)*(128+LD_buffer))[0] = tmp_a[i].y; \
-    } \
-    sts128(b_share+to_Bs, tmp_b[0], tmp_b[1], tmp_b[2], tmp_b[3]); \
-    from_a += 8; from_b += (16*N)/2; \
-} \
-
 // #define LDG2S(a_share, b_share) \
 // { \
-//     __half2 tmp_a[4]; \
+//     __half2 tmp_a[4], tmp_b[4]; \
 //     ldg128(from_a, tmp_a[0], tmp_a[1], tmp_a[2], tmp_a[3]); \
+//     ldg128(from_b, tmp_b[0], tmp_b[1], tmp_b[2], tmp_b[3]); \
 //     _Pragma("unroll") \
 //     for (int i=0; i<4; ++i){ \
 //         (a_share+to_As+i*2*(128+LD_buffer))[0] = tmp_a[i].x; \
 //         (a_share+to_As+(i*2+1)*(128+LD_buffer))[0] = tmp_a[i].y; \
 //     } \
-//     ldgsts128(b_share+to_Bs, from_b); \
+//     sts128(b_share+to_Bs, tmp_b[0], tmp_b[1], tmp_b[2], tmp_b[3]); \
 //     from_a += 8; from_b += (16*N)/2; \
 // } \
+
+#define LDG2S(a_share, b_share) \
+{ \
+    __half2 tmp_a[4]; \
+    ldg128(from_a, tmp_a[0], tmp_a[1], tmp_a[2], tmp_a[3]); \
+    _Pragma("unroll") \
+    for (int i=0; i<4; ++i){ \
+        (a_share+to_As+i*2*(128+LD_buffer))[0] = tmp_a[i].x; \
+        (a_share+to_As+(i*2+1)*(128+LD_buffer))[0] = tmp_a[i].y; \
+    } \
+    ldgsts128(b_share+to_Bs, from_b); \
+    from_a += 8; from_b += (16*N)/2; \
+} \
 
 #define MATMUL_WMMA(a_share, b_share) \
 { \
@@ -182,19 +182,24 @@ __global__ void matrix_mul_cpasync_kernel_128x128(__half2* matA, __half2* matB, 
     unsigned int to_Bs = (thread_id/16) * (128+LD_buffer) + 8 * (thread_id%16);
     // outer loop
     LDG2S(As[0], Bs[0])
-    unsigned int pipeline_indicator = 0;
-    #pragma unroll
-    for (int i_step=0; i_step<K/16-1; ++i_step) {
-        // load sub A, B matrix
-        // ldgsts_sync();
-        __syncthreads();
-        LDG2S(As[1-pipeline_indicator], Bs[1-pipeline_indicator])
-        MATMUL_WMMA(As[pipeline_indicator], Bs[pipeline_indicator])
-        pipeline_indicator = 1 - pipeline_indicator;
-    }
-    // ldgsts_sync();
+    ldgsts_sync();
     __syncthreads();
-    MATMUL_WMMA(As[pipeline_indicator], Bs[pipeline_indicator])
+    LDG2S(As[1], Bs[1])
+    MATMUL_WMMA(As[0], Bs[0])
+    #pragma unroll
+    for (int i_step=0; i_step<(K/16)/2-1; ++i_step) {
+        ldgsts_sync();
+        __syncthreads();
+        LDG2S(As[0], Bs[0])
+        MATMUL_WMMA(As[1], Bs[1])
+        ldgsts_sync();
+        __syncthreads();
+        LDG2S(As[1], Bs[1])
+        MATMUL_WMMA(As[0], Bs[0])
+    }
+    ldgsts_sync();
+    __syncthreads();
+    MATMUL_WMMA(As[1], Bs[1])
     #pragma unroll
     for (int i=0; i<2; ++i) {
         #pragma unroll
