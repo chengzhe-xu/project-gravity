@@ -167,18 +167,35 @@ __global__ void matrix_mul_smit_pipeline_kernel_128x128(__half2* matA, __half2* 
     __half2* from_b = matBT + (block_col*128 + 4*(thread_id/8)) * (K/2) + thread_id%8; 
     unsigned int to_Bs = (thread_id%8) * (128+LD_buffer) + 4*(thread_id/8);
     // outer loop
+    // LDG2S(As[0], Bs[0])
+    // __syncthreads();
+    // unsigned int pipeline_indicator = 0;
+    // #pragma unroll
+    // for (int i_step=0; i_step<K/16-1; ++i_step) {
+    //     // load sub A, B matrix
+    //     // LDG2S(As[1-pipeline_indicator], Bs[1-pipeline_indicator])
+    //     LDG2S(As[!pipeline_indicator], Bs[!pipeline_indicator])
+    //     MATMUL_THREAD(As[pipeline_indicator], Bs[pipeline_indicator])
+    //     __syncthreads();
+    //     // pipeline_indicator = 1-pipeline_indicator;
+    //     pipeline_indicator = !pipeline_indicator;
+    // }
+    // MATMUL_THREAD(As[pipeline_indicator], Bs[pipeline_indicator])
     LDG2S(As[0], Bs[0])
     __syncthreads();
-    unsigned int pipeline_indicator = 0;
+    LDG2S(As[1], Bs[1])
+    MATMUL_THREAD(As[0], Bs[0])
+    __syncthreads();
     #pragma unroll
-    for (int i_step=0; i_step<K/16-1; ++i_step) {
-        // load sub A, B matrix
-        LDG2S(As[!pipeline_indicator], Bs[!pipeline_indicator])
-        MATMUL_THREAD(As[pipeline_indicator], Bs[pipeline_indicator])
+    for (int i_step=0; i_step<(K/16)/2-1; ++i_step) {
+        LDG2S(As[0], Bs[0])
+        MATMUL_THREAD(As[1], Bs[1])
         __syncthreads();
-        pipeline_indicator = !pipeline_indicator;
+        LDG2S(As[1], Bs[1])
+        MATMUL_THREAD(As[0], Bs[0])
+        __syncthreads();
     }
-    MATMUL_THREAD(As[pipeline_indicator], Bs[pipeline_indicator])
+    MATMUL_THREAD(As[1], Bs[1])
     __syncthreads();
     // write back to C
     __half2* to_c = matC + (block_row*128 + warp_row*32 + thread_row*8) * (N/2) + block_col*128/2 + warp_col*64/2 + thread_col*8/2;
