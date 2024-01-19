@@ -4,3 +4,9 @@
 
 # build files
 **build**
+
+# reference repos
+./3rdparty/trt-samples-for-hackathon-cn/*
+./3rdparty/stanford-cs193g-sp2010/*
+./3rdparty/jetson_dla_tutorial/*
+./3rdparty/torch2trt/*
