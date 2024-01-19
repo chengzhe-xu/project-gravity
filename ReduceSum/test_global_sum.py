@@ -4,7 +4,7 @@ import build.global_sum_lib as global_sum_lib
 
 def argument_parser():
     parser = argparse.ArgumentParser(description="Global sum arg parser.")
-    parser.add_argument("--arr_size", type=int, default=4096)
+    parser.add_argument("--arr_size", type=int, default=1024 * 1024)
     parser.add_argument("--test_round", type=int, default=5)
     return parser.parse_args()
 
