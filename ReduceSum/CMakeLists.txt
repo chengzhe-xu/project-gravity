@@ -34,6 +34,15 @@ set_target_properties(global_sum_lib_reduce PROPERTIES
     CUDA_ARCHITECTURES 87
 )
 
+# reduce async version
+add_library(global_sum_lib_reduce_async STATIC src/global_sum_reduce_async.cu)
+set_target_properties(global_sum_lib_reduce_async PROPERTIES 
+    POSITION_INDEPENDENT_CODE ON
+    CUDA_VISIBILITY_PRESET "hidden"
+    CUDA_SEPARABLE_COMPILATION ON
+    CUDA_ARCHITECTURES 87
+)
+
 add_library(global_sum_lib MODULE src/global_sum.cc)
 
 set_target_properties(global_sum_lib PROPERTIES 
@@ -45,4 +54,5 @@ set_target_properties(global_sum_lib PROPERTIES
 )
 target_link_libraries(global_sum_lib PRIVATE global_sum_lib_atomAdd)
 target_link_libraries(global_sum_lib PRIVATE global_sum_lib_reduce)
+target_link_libraries(global_sum_lib PRIVATE global_sum_lib_reduce_async)
 target_link_libraries(global_sum_lib PRIVATE pybind11::module)

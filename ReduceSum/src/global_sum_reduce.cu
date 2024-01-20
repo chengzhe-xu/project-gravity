@@ -24,6 +24,7 @@ __global__ void global_sum_reduce_kernel(float * arr, float * sum_result) {
 
 float global_sum_reduce_host(matrix_template& arr, const int arr_size) {
     event_pair timer;
+    event_pair overall_timer;
     float * arr_device = 0;
     float * sum_result_device = 0;
     cudaMalloc((void**)&arr_device, arr_size * sizeof(float));
@@ -32,6 +33,7 @@ float global_sum_reduce_host(matrix_template& arr, const int arr_size) {
         printf("[ERROR] Could not allocate CUDA memory.");
         return 0.0;
     }
+    start_timer(&overall_timer);
     cudaMemcpy(arr_device, arr.data(), arr_size * sizeof(float), cudaMemcpyHostToDevice);
     start_timer(&timer);
     const unsigned int block_num = arr_size/(512*2);
@@ -40,8 +42,9 @@ float global_sum_reduce_host(matrix_template& arr, const int arr_size) {
     float kernel_time_ms = stop_timer(&timer);
     float sum_result_host = 0;
     cudaMemcpy(&sum_result_host, sum_result_device, 1 * sizeof(float), cudaMemcpyDeviceToHost);
+    float host_time_ms = stop_timer(&overall_timer);
     cudaFree(arr_device);
     cudaFree(sum_result_device);
-    printf("cuda kernel <global_sum_reduce_kernel> runtime %f ms.\n", kernel_time_ms);
+    printf("cuda kernel <global_sum_reduce_kernel> runtime %f ms, host side runtime %f ms.\n", kernel_time_ms, host_time_ms);
     return sum_result_host;
 }
