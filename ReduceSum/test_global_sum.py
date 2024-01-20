@@ -18,5 +18,7 @@ if __name__=='__main__':
         ref_sum_result = np.sum(arr)
 
         sum_result_atomAdd = global_sum_lib.global_sum_atomAdd(arr, arr_size)
+        sum_result_reduce = global_sum_lib.global_sum_reduce(arr, arr_size)
         
         print(f"refrence version:\t{ref_sum_result}, atomAdd version:\t{sum_result_atomAdd}, abs error:\t{sum_result_atomAdd - ref_sum_result}")
+        print(f"refrence version:\t{ref_sum_result}, reduce version:\t{sum_result_reduce}, abs error:\t{sum_result_reduce - ref_sum_result}")

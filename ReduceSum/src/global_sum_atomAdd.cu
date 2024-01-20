@@ -2,7 +2,6 @@
 #include "global_sum.cuh"
 
 __global__ void global_sum_atomAdd_kernel(float * arr, float * sum_result) {
-    // handle 1024 arr items, and add them to sum_result
     const unsigned int data_id = blockIdx.x * blockDim.x + threadIdx.x;
     atomicAdd(sum_result, arr[data_id]);
     return;
