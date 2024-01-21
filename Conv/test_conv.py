@@ -28,6 +28,15 @@ class Conv2D(object):
                     self.dilated_kernel[:, :, i*self.dilation[0], j*self.dilation[1]] = self.weight[:, :, i, j]
         else:
             self.dilated_kernel = weight
+        # flatten dilated kernel
+        self.dilated_kernel_img2col = np.zeros([self.dilated_kernel.shape[2]*self.dilated_kernel.shape[3]*self.in_channel, 
+                                                self.out_channel])
+        for out_channel_iter in range(self.out_channel):
+            for h_iter in range(self.dilated_kernel.shape[2]):
+                for w_iter in range(self.dilated_kernel.shape[3]):
+                    row_num = (h_iter*self.dilated_kernel.shape[3]+w_iter)*self.in_channel
+                    self.dilated_kernel_img2col[row_num:row_num+self.in_channel, 
+                                                out_channel_iter] = self.dilated_kernel[out_channel_iter, :, h_iter, w_iter]
     
     def __call__(self, input_tensor, method):
         _, in_channel, _, _ = input_tensor.shape
@@ -72,15 +81,6 @@ class Conv2D(object):
         output_tensor = np.zeros([batch_size, self.out_channel, output_H, output_W])
         padded_input_img2col = np.zeros([batch_size * output_H * output_W, 
                                          self.dilated_kernel.shape[2] * self.dilated_kernel.shape[3] * self.in_channel])
-        dilated_kernel_img2col = np.zeros([self.dilated_kernel.shape[2] * self.dilated_kernel.shape[3] * self.in_channel, 
-                                           self.out_channel])
-        # flatten dilated kernel
-        for out_channel_iter in range(self.out_channel):
-            for h_iter in range(self.dilated_kernel.shape[2]):
-                for w_iter in range(self.dilated_kernel.shape[3]):
-                    row_num = (h_iter*self.dilated_kernel.shape[3]+w_iter)*self.in_channel
-                    dilated_kernel_img2col[row_num:row_num+self.in_channel, 
-                                           out_channel_iter] = self.dilated_kernel[out_channel_iter, :, h_iter, w_iter]
         # flatten padded input
         for batch_iter in range(batch_size):
             for h_iter in range(output_H):
@@ -92,7 +92,7 @@ class Conv2D(object):
                             padded_input_img2col[row_num, col_num:col_num+self.in_channel] = padded_input[batch_iter, :, 
                                                                                                           h_iter*self.stride[0]+k_h_iter,
                                                                                                           w_iter*self.stride[1]+k_w_iter]
-        output_img2col = np.matmul(padded_input_img2col, dilated_kernel_img2col)
+        output_img2col = np.matmul(padded_input_img2col, self.dilated_kernel_img2col)
         # unflatten output tensor
         for batch_iter in range(batch_size):
             for h_iter in range(output_H):
