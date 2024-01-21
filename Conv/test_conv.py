@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import argparse
 
-class Conv2D(object):
+class Conv2D_naive(object):
     """
     The input tensor: N*Cin*H*W np.ndarray
     The weight: Cout*Cin*h*w np.ndarray
@@ -74,12 +74,12 @@ def argument_parser():
 if __name__=='__main__':
     args = argument_parser()
     torch_conv2d = torch.nn.Conv2d(args.input_channel, args.output_channel, args.kernel_size, 
-                                       stride=args.stride, dilation=args.dilation, padding=args.padding, bias=False)
-    my_conv2d = Conv2D(weight=torch_conv2d.weight.detach().numpy(),
-                       stride=args.stride, padding=args.padding, 
-                       do_dilation=True, dilation=args.dilation)
+                                   stride=args.stride, dilation=args.dilation, padding=args.padding, bias=False)
+    my_naive_conv2d = Conv2D_naive(weight=torch_conv2d.weight.detach().numpy(), 
+                                   stride=args.stride, padding=args.padding, 
+                                   do_dilation=True, dilation=args.dilation)
     for _ in range(args.test_round):
         input_tensor = torch.randn(args.batch_size, args.input_channel, args.input_H, args.input_W)
         ref_output_tensor = torch_conv2d(input_tensor).detach().numpy()
-        output_tensor = my_conv2d(input_tensor.numpy())
+        output_tensor = my_naive_conv2d(input_tensor.numpy())
         print(f"NumPy version: maximum abs error:\t{np.max(np.abs(output_tensor-ref_output_tensor))}.")
