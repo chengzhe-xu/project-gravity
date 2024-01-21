@@ -45,6 +45,8 @@ class Conv2D(object):
             return self.infer_naive(input_tensor)
         if method == "img2col":
             return self.infer_img2col(input_tensor)
+        if method == "winograde":
+            return self.infer_winograde(input_tensor)
         raise NotImplementedError
     
     def infer_naive(self, input_tensor):
@@ -93,6 +95,39 @@ class Conv2D(object):
                                                                                                           h_iter*self.stride[0]+k_h_iter,
                                                                                                           w_iter*self.stride[1]+k_w_iter]
         output_img2col = np.matmul(padded_input_img2col, self.dilated_kernel_img2col)
+        # unflatten output tensor
+        for batch_iter in range(batch_size):
+            for h_iter in range(output_H):
+                for w_iter in range(output_W):
+                    output_tensor[batch_iter, :, h_iter, w_iter] = output_img2col[batch_iter*output_H*output_W+h_iter*output_W+w_iter, :]
+        return output_tensor
+    
+    def infer_winograde(self, input_tensor):
+        batch_size, _, input_H, input_W = input_tensor.shape
+        # pad the input
+        padded_input = np.zeros([batch_size, self.in_channel, input_H+2*self.padding[0], input_W+2*self.padding[1]])
+        padded_input[:, :, self.padding[0]:self.padding[0]+input_H, self.padding[1]:self.padding[1]+input_W] = input_tensor
+        # the flattened matrix size
+        output_H = (padded_input.shape[2] - self.dilated_kernel.shape[2]) // self.stride[0] +1
+        output_W = (padded_input.shape[3] - self.dilated_kernel.shape[3]) // self.stride[1] +1
+        output_tensor = np.zeros([batch_size, self.out_channel, output_H, output_W])
+        padded_input_img2col = np.zeros([batch_size * output_H * output_W, 
+                                         self.dilated_kernel.shape[2] * self.dilated_kernel.shape[3] * self.in_channel])
+        # flatten padded input
+        for batch_iter in range(batch_size):
+            for h_iter in range(output_H):
+                for w_iter in range(output_W):
+                    row_num = batch_iter * output_H * output_W + h_iter * output_W + w_iter
+                    for k_h_iter in range(self.dilated_kernel.shape[2]):
+                        for k_w_iter in range(self.dilated_kernel.shape[3]):
+                            col_num = (k_h_iter*self.dilated_kernel.shape[3]+k_w_iter)*self.in_channel
+                            padded_input_img2col[row_num, col_num:col_num+self.in_channel] = padded_input[batch_iter, :, 
+                                                                                                          h_iter*self.stride[0]+k_h_iter,
+                                                                                                          w_iter*self.stride[1]+k_w_iter]
+        # use winograde for:
+        # output_img2col = np.matmul(padded_input_img2col, self.dilated_kernel_img2col)
+        raise NotImplementedError
+
         # unflatten output tensor
         for batch_iter in range(batch_size):
             for h_iter in range(output_H):
