@@ -2,11 +2,11 @@
 #include "global_sum.cuh"
 
 __global__ void global_sum_reduce_kernel(float * arr, float * sum_result) {
-    // 512 threads per block, 1024 data per block
-    unsigned int arr_size = 1024;
+    // 32 threads per block, 64 data per block
+    unsigned int arr_size = 64;
     const unsigned int data_id = blockIdx.x * arr_size + threadIdx.x;
 
-    __shared__ __align__(2 * 1024) char smem[512 * 4]; // 2k
+    __shared__ __align__(2 * 1024) char smem[32 * 4];
     float * arr_s = reinterpret_cast<float *>(smem);
     // load global
     arr_s[threadIdx.x] = arr[data_id] + arr[data_id + arr_size / 2];
@@ -36,8 +36,8 @@ float global_sum_reduce_host(matrix_template& arr, const int arr_size) {
     start_timer(&overall_timer);
     cudaMemcpy(arr_device, arr.data(), arr_size * sizeof(float), cudaMemcpyHostToDevice);
     start_timer(&timer);
-    const unsigned int block_num = arr_size/(512*2);
-    const unsigned int thread_num = 512;
+    const unsigned int thread_num = 32;
+    const unsigned int block_num = arr_size/(thread_num*2);
     global_sum_reduce_kernel<<<block_num, thread_num>>>(arr_device, sum_result_device);
     float kernel_time_ms = stop_timer(&timer);
     float sum_result_host = 0;
