@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import argparse
 
-class Conv2D_naive(object):
+class Conv2D(object):
     """
     The input tensor: N*Cin*H*W np.ndarray
     The weight: Cout*Cin*h*w np.ndarray
@@ -29,17 +29,20 @@ class Conv2D_naive(object):
         else:
             self.dilated_kernel = weight
     
-    def __call__(self, input_tensor):
+    def __call__(self, input_tensor, method):
         _, in_channel, _, _ = input_tensor.shape
         assert in_channel == self.in_channel, "[ERROR] input channel not matched."
-        return self.infer(input_tensor)
+        if method == "naive":
+            return self.infer_naive(input_tensor)
+        if method == "img2col":
+            return self.infer_img2col(input_tensor)
     
-    def infer(self, input_tensor):
+    def infer_naive(self, input_tensor):
         batch_size, _, input_H, input_W = input_tensor.shape
         # pad the input
         padded_input = np.zeros([batch_size, self.in_channel, input_H+2*self.padding[0], input_W+2*self.padding[1]])
         padded_input[:, :, self.padding[0]:self.padding[0]+input_H, self.padding[1]:self.padding[1]+input_W] = input_tensor
-        # calculate the oputput tensor shape
+        # calculate the output tensor shape
         output_tensor = np.zeros([
             batch_size, self.out_channel,
             (padded_input.shape[2] - self.dilated_kernel.shape[2]) // self.stride[0] +1,
@@ -55,6 +58,45 @@ class Conv2D_naive(object):
                                                 output_w*self.stride[1]:output_w*self.stride[1]+self.dilated_kernel.shape[3]]
                 respective_field = np.repeat(respective_field[:, np.newaxis, :, :, :], self.out_channel, axis=1)
                 output_tensor[:, :, output_h, output_w] = np.sum(kernel_ * respective_field, axis=(-1, -2, -3))
+        return output_tensor
+    
+    def infer_img2col(self, input_tensor):
+        batch_size, _, input_H, input_W = input_tensor.shape
+        # pad the input
+        padded_input = np.zeros([batch_size, self.in_channel, input_H+2*self.padding[0], input_W+2*self.padding[1]])
+        padded_input[:, :, self.padding[0]:self.padding[0]+input_H, self.padding[1]:self.padding[1]+input_W] = input_tensor
+        # the flattened matrix size
+        output_H = (padded_input.shape[2] - self.dilated_kernel.shape[2]) // self.stride[0] +1
+        output_W = (padded_input.shape[3] - self.dilated_kernel.shape[3]) // self.stride[1] +1
+        output_tensor = np.zeros([batch_size, self.out_channel, output_H, output_W])
+        padded_input_img2col = np.zeros([batch_size * output_H * output_W, 
+                                         self.dilated_kernel.shape[2] * self.dilated_kernel.shape[3] * self.in_channel])
+        dilated_kernel_img2col = np.zeros([self.dilated_kernel.shape[2] * self.dilated_kernel.shape[3] * self.in_channel, 
+                                           self.out_channel])
+        # flatten dilated kernel
+        for out_channel_iter in range(self.out_channel):
+            for h_iter in range(self.dilated_kernel.shape[2]):
+                for w_iter in range(self.dilated_kernel.shape[3]):
+                    row_num = (h_iter*self.dilated_kernel.shape[3]+w_iter)*self.in_channel
+                    dilated_kernel_img2col[row_num:row_num+self.in_channel, 
+                                           out_channel_iter] = self.dilated_kernel[out_channel_iter, :, h_iter, w_iter]
+        # flatten padded input
+        for batch_iter in range(batch_size):
+            for h_iter in range(output_H):
+                for w_iter in range(output_W):
+                    row_num = batch_iter * output_H * output_W + h_iter * output_W + w_iter
+                    for k_h_iter in range(self.dilated_kernel.shape[2]):
+                        for k_w_iter in range(self.dilated_kernel.shape[3]):
+                            col_num = (k_h_iter*self.dilated_kernel.shape[3]+k_w_iter)*self.in_channel
+                            padded_input_img2col[row_num, col_num:col_num+self.in_channel] = padded_input[batch_iter, :, 
+                                                                                                          h_iter*self.stride[0]+k_h_iter,
+                                                                                                          w_iter*self.stride[1]+k_w_iter]
+        output_img2col = np.matmul(padded_input_img2col, dilated_kernel_img2col)
+        # unflatten output tensor
+        for batch_iter in range(batch_size):
+            for h_iter in range(output_H):
+                for w_iter in range(output_W):
+                    output_tensor[batch_iter, :, h_iter, w_iter] = output_img2col[batch_iter*output_H*output_W+h_iter*output_W+w_iter, :]
         return output_tensor
 
 def argument_parser():
@@ -75,11 +117,13 @@ if __name__=='__main__':
     args = argument_parser()
     torch_conv2d = torch.nn.Conv2d(args.input_channel, args.output_channel, args.kernel_size, 
                                    stride=args.stride, dilation=args.dilation, padding=args.padding, bias=False)
-    my_naive_conv2d = Conv2D_naive(weight=torch_conv2d.weight.detach().numpy(), 
-                                   stride=args.stride, padding=args.padding, 
-                                   do_dilation=True, dilation=args.dilation)
+    my_conv2d = Conv2D(weight=torch_conv2d.weight.detach().numpy(), 
+                       stride=args.stride, padding=args.padding, 
+                       do_dilation=True, dilation=args.dilation)
     for _ in range(args.test_round):
         input_tensor = torch.randn(args.batch_size, args.input_channel, args.input_H, args.input_W)
         ref_output_tensor = torch_conv2d(input_tensor).detach().numpy()
-        output_tensor = my_naive_conv2d(input_tensor.numpy())
-        print(f"NumPy version: maximum abs error:\t{np.max(np.abs(output_tensor-ref_output_tensor))}.")
+        output_tensor_naive = my_conv2d(input_tensor.numpy(), method="naive")
+        output_tensor_img2col = my_conv2d(input_tensor.numpy(), method="img2col")
+        print(f"Naive version: maximum abs error:\t{np.max(np.abs(output_tensor_naive-ref_output_tensor))}.")
+        print(f"img2col version: maximum abs error:\t{np.max(np.abs(output_tensor_img2col-ref_output_tensor))}.")
