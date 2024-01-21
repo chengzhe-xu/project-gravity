@@ -36,6 +36,7 @@ class Conv2D(object):
             return self.infer_naive(input_tensor)
         if method == "img2col":
             return self.infer_img2col(input_tensor)
+        raise NotImplementedError
     
     def infer_naive(self, input_tensor):
         batch_size, _, input_H, input_W = input_tensor.shape
