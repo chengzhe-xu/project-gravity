@@ -177,7 +177,7 @@ def argument_parser():
     parser.add_argument("--stride", type=int, default=[2, 1, 2])
     parser.add_argument("--dilation", type=int, default=[1, 2, 2])
     parser.add_argument("--padding", type=int, default=[4, 4, 4])
-    parser.add_argument("--test_round", type=int, default=5)
+    parser.add_argument("--test_round", type=int, default=7)
     return parser.parse_args()
 
 if __name__=='__main__':
