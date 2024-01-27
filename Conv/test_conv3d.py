@@ -31,6 +31,14 @@ class Conv3D(object):
                                             w_iter*self.dilation[2]] = self.weight[:, :, d_iter, h_iter, w_iter]
         else:
             self.dilated_kernel = self.weight
+        self.flattened_dilated_kernel = np.zeros([self.in_channel * self.dilated_kernel_d * self.dilated_kernel_h * self.dilated_kernel_w,
+                                                  self.out_channel])
+        for cout_iter in range(self.out_channel):
+            for d_iter in range(self.dilated_kernel_d):
+                for h_iter in range(self.dilated_kernel_h):
+                    for w_iter in range(self.dilated_kernel_w):
+                        self.flattened_dilated_kernel[self.in_channel*(d_iter*self.dilated_kernel_h*self.dilated_kernel_w + h_iter*self.dilated_kernel_w + w_iter):self.in_channel*(d_iter*self.dilated_kernel_h*self.dilated_kernel_w + h_iter*self.dilated_kernel_w + w_iter + 1), 
+                                                      cout_iter] = self.dilated_kernel[cout_iter, :, d_iter, h_iter, w_iter]
 
     def __call__(self, input_tensor, method):
         _, in_channel, _, _, _ = input_tensor.shape
@@ -71,10 +79,90 @@ class Conv3D(object):
         return output_tensor
 
     def infer_img2col(self, input_tensor):
-        raise NotImplementedError
+        batch_size, in_channel, input_D, input_H, input_W = input_tensor.shape
+        padded_input_D = input_D + 2 * self.padding[0]
+        padded_input_H = input_H + 2 * self.padding[1]
+        padded_input_W = input_W + 2 * self.padding[2]
+        padded_input = np.zeros([batch_size, in_channel, padded_input_D, padded_input_H, padded_input_W])
+        padded_input[:, :, 
+                     self.padding[0]:self.padding[0]+input_D,
+                     self.padding[1]:self.padding[1]+input_H,
+                     self.padding[2]:self.padding[2]+input_W] = input_tensor
+        output_tensor_size = [batch_size, self.out_channel,
+                              (padded_input_D - self.dilated_kernel_d) // self.stride[0] + 1,
+                              (padded_input_H - self.dilated_kernel_h) // self.stride[1] + 1,
+                              (padded_input_W - self.dilated_kernel_w) // self.stride[2] + 1]
+        flattened_input_tensor = np.zeros([batch_size*output_tensor_size[2]*output_tensor_size[3]*output_tensor_size[4],
+                                           self.flattened_dilated_kernel.shape[0]])
+        for batch_iter in range(batch_size):
+            for d_iter in range(output_tensor_size[2]):
+                for h_iter in range(output_tensor_size[3]):
+                    for w_iter in range(output_tensor_size[4]):
+                        _row = batch_iter * (output_tensor_size[2]*output_tensor_size[3]*output_tensor_size[4]) + \
+                            d_iter * (output_tensor_size[3]*output_tensor_size[4]) + h_iter * (output_tensor_size[4]) + w_iter
+                        respective_field = padded_input[batch_iter, :,
+                                                        d_iter * self.stride[0]:d_iter * self.stride[0] + self.dilated_kernel_d,
+                                                        h_iter * self.stride[1]:h_iter * self.stride[1] + self.dilated_kernel_h,
+                                                        w_iter * self.stride[2]:w_iter * self.stride[2] + self.dilated_kernel_w]
+                        for kd_iter in range(self.dilated_kernel_d):
+                            for kh_iter in range(self.dilated_kernel_h):
+                                for kw_iter in range(self.dilated_kernel_w):
+                                    _col = kd_iter * (self.dilated_kernel_h*self.dilated_kernel_w) + kh_iter * self.dilated_kernel_w + kw_iter
+                                    flattened_input_tensor[_row, _col*self.in_channel:(_col+1)*self.in_channel] = respective_field[:, kd_iter, kh_iter, kw_iter]
+        flattened_output_tensor = np.matmul(flattened_input_tensor, self.flattened_dilated_kernel)
+        output_tensor = np.zeros(output_tensor_size)
+        for batch_iter in range(batch_size):
+            for d_iter in range(output_tensor_size[2]):
+                for h_iter in range(output_tensor_size[3]):
+                    for w_iter in range(output_tensor_size[4]):
+                        _row = batch_iter * (output_tensor_size[2]*output_tensor_size[3]*output_tensor_size[4]) + \
+                            d_iter * (output_tensor_size[3]*output_tensor_size[4]) + h_iter * (output_tensor_size[4]) + w_iter
+                        output_tensor[batch_iter, :, d_iter, h_iter, w_iter] = flattened_output_tensor[_row, :]
+        return output_tensor
 
     def infer_winograde(self, input_tensor):
+        batch_size, in_channel, input_D, input_H, input_W = input_tensor.shape
+        padded_input_D = input_D + 2 * self.padding[0]
+        padded_input_H = input_H + 2 * self.padding[1]
+        padded_input_W = input_W + 2 * self.padding[2]
+        padded_input = np.zeros([batch_size, in_channel, padded_input_D, padded_input_H, padded_input_W])
+        padded_input[:, :, 
+                     self.padding[0]:self.padding[0]+input_D,
+                     self.padding[1]:self.padding[1]+input_H,
+                     self.padding[2]:self.padding[2]+input_W] = input_tensor
+        output_tensor_size = [batch_size, self.out_channel,
+                              (padded_input_D - self.dilated_kernel_d) // self.stride[0] + 1,
+                              (padded_input_H - self.dilated_kernel_h) // self.stride[1] + 1,
+                              (padded_input_W - self.dilated_kernel_w) // self.stride[2] + 1]
+        flattened_input_tensor = np.zeros([batch_size*output_tensor_size[2]*output_tensor_size[3]*output_tensor_size[4],
+                                           self.flattened_dilated_kernel.shape[0]])
+        for batch_iter in range(batch_size):
+            for d_iter in range(output_tensor_size[2]):
+                for h_iter in range(output_tensor_size[3]):
+                    for w_iter in range(output_tensor_size[4]):
+                        _row = batch_iter * (output_tensor_size[2]*output_tensor_size[3]*output_tensor_size[4]) + \
+                            d_iter * (output_tensor_size[3]*output_tensor_size[4]) + h_iter * (output_tensor_size[4]) + w_iter
+                        respective_field = padded_input[batch_iter, :,
+                                                        d_iter * self.stride[0]:d_iter * self.stride[0] + self.dilated_kernel_d,
+                                                        h_iter * self.stride[1]:h_iter * self.stride[1] + self.dilated_kernel_h,
+                                                        w_iter * self.stride[2]:w_iter * self.stride[2] + self.dilated_kernel_w]
+                        for kd_iter in range(self.dilated_kernel_d):
+                            for kh_iter in range(self.dilated_kernel_h):
+                                for kw_iter in range(self.dilated_kernel_w):
+                                    _col = kd_iter * (self.dilated_kernel_h*self.dilated_kernel_w) + kh_iter * self.dilated_kernel_w + kw_iter
+                                    flattened_input_tensor[_row, _col*self.in_channel:(_col+1)*self.in_channel] = respective_field[:, kd_iter, kh_iter, kw_iter]
+        # use winograde for:
+        # flattened_output_tensor = np.matmul(flattened_input_tensor, self.flattened_dilated_kernel)
         raise NotImplementedError
+        output_tensor = np.zeros(output_tensor_size)
+        for batch_iter in range(batch_size):
+            for d_iter in range(output_tensor_size[2]):
+                for h_iter in range(output_tensor_size[3]):
+                    for w_iter in range(output_tensor_size[4]):
+                        _row = batch_iter * (output_tensor_size[2]*output_tensor_size[3]*output_tensor_size[4]) + \
+                            d_iter * (output_tensor_size[3]*output_tensor_size[4]) + h_iter * (output_tensor_size[4]) + w_iter
+                        output_tensor[batch_iter, :, d_iter, h_iter, w_iter] = flattened_output_tensor[_row, :]
+        return output_tensor
         
 
 def argument_parser():
@@ -103,4 +191,6 @@ if __name__=='__main__':
         input_tensor = torch.randn(args.batch_size, args.input_channel, args.input_D, args.input_H, args.input_W)
         ref_output_tensor = torch_conv3d(input_tensor).detach().numpy()
         output_tensor_naive = my_conv3d(input_tensor.numpy(), method="naive")
+        output_tensor_img2col = my_conv3d(input_tensor.numpy(), method="img2col")
         print(f"Naive version: maximum abs error:\t{np.max(np.abs(output_tensor_naive-ref_output_tensor))}.")
+        print(f"img2col version: maximum abs error:\t{np.max(np.abs(output_tensor_img2col-ref_output_tensor))}.")
