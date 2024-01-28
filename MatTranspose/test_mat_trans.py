@@ -24,7 +24,7 @@ if __name__=='__main__':
     np.random.seed(np.random.randint(7))
     for _ in range(args.test_round):
         mat = (np.random.rand(M, N) - 0.5) * 2 * 10
-        matT = (np.random.rand(M, N) - 0.5) * 2 * 10
+        matT = (np.random.rand(N, M) - 0.5) * 2 * 10
         matT_ref = mat.T.copy()
 
         matT_naive = mat_trans_lib.mat_trans_naive(mat, matT, M, N)
