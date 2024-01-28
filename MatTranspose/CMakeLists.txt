@@ -16,7 +16,16 @@ include_directories(
 
 include_directories(include)
 
-# atomAdd version
+# common helper functions
+add_library(mat_trans_lib_common_helpers STATIC src/common.cu)
+set_target_properties(mat_trans_lib_common_helpers PROPERTIES 
+    POSITION_INDEPENDENT_CODE ON
+    CUDA_VISIBILITY_PRESET "hidden"
+    CUDA_SEPARABLE_COMPILATION ON
+    CUDA_ARCHITECTURES 87
+)
+
+# naive version
 add_library(mat_trans_lib_naive STATIC src/mat_trans_naive.cu)
 set_target_properties(mat_trans_lib_naive PROPERTIES 
     POSITION_INDEPENDENT_CODE ON
@@ -24,9 +33,19 @@ set_target_properties(mat_trans_lib_naive PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
     CUDA_ARCHITECTURES 87
 )
+target_link_libraries(mat_trans_lib_naive PRIVATE mat_trans_lib_common_helpers)
+
+# shared memory version
+add_library(mat_trans_lib_shared STATIC src/mat_trans_shared.cu)
+set_target_properties(mat_trans_lib_shared PROPERTIES 
+    POSITION_INDEPENDENT_CODE ON
+    CUDA_VISIBILITY_PRESET "hidden"
+    CUDA_SEPARABLE_COMPILATION ON
+    CUDA_ARCHITECTURES 87
+)
+target_link_libraries(mat_trans_lib_shared PRIVATE mat_trans_lib_common_helpers)
 
 add_library(mat_trans_lib MODULE src/mat_trans.cc)
-
 set_target_properties(mat_trans_lib PROPERTIES 
     CXX_VISIBILITY_PRESET "hidden"
     INTERPROCEDURAL_OPTIMIZATION TRUE
@@ -35,4 +54,5 @@ set_target_properties(mat_trans_lib PROPERTIES
     CUDA_ARCHITECTURES 87
 )
 target_link_libraries(mat_trans_lib PRIVATE mat_trans_lib_naive)
+target_link_libraries(mat_trans_lib PRIVATE mat_trans_lib_shared)
 target_link_libraries(mat_trans_lib PRIVATE pybind11::module)

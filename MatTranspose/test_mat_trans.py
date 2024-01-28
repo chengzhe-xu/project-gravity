@@ -29,5 +29,9 @@ if __name__=='__main__':
 
         matT_naive = mat_trans_lib.mat_trans_naive(mat, matT, M, N)
         naive_abs_err, naive_abs_rel, _ = abs_error_w_rel(matT_naive.copy(), mat.T.copy())
+
+        matT_shared = mat_trans_lib.mat_trans_shared(mat, matT, M, N)
+        shared_abs_err, shared_abs_rel, _ = abs_error_w_rel(matT_shared.copy(), mat.T.copy())
         
         print(f"naive version matrix transpose abs err:\t\t\t{naive_abs_err} ({100*naive_abs_rel}%)")
+        print(f"shared memory version matrix transpose abs err:\t\t\t{shared_abs_err} ({100*shared_abs_rel}%)")
