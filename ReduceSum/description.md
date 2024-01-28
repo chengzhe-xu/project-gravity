@@ -9,3 +9,6 @@ The following versions are implemented:
     - use only atomic add function
     - use reduce sum
     - use reduce sum with stream overlap
+- The reduces sum version
+    - without asynchronize streams
+    - with asynchronize streams
