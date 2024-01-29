@@ -54,7 +54,7 @@ __device__ __forceinline__ void lds128(__half2* addr, __half2 &reg0, __half2 &re
 }
 
 __global__ void mat_trans_shared_kernel(__half2 * mat, __half2 * matT, int M, int N) {
-    // launch 16*16 threads, hadling 64*64 data
+    // launch 16*16 threads, handling 64*64 data
     unsigned int block_row = blockIdx.x / (N/64);
     unsigned int block_col = blockIdx.x % (N/64);
     unsigned int thread_row = threadIdx.x / 8;
@@ -85,8 +85,13 @@ __global__ void mat_trans_shared_kernel(__half2 * mat, __half2 * matT, int M, in
     to_mat_s[(32+LD_buffer)*7] = tmp_mat[7];
     __syncthreads();
     __half2 * from_mat_s = mat_s + thread_row*2*(32+LD_buffer) + thread_col*4;
-    lds128(from_mat_s, tmp_mat[0], tmp_mat[1], tmp_mat[2], tmp_mat[3]);
-    lds128(from_mat_s+(32+LD_buffer), tmp_mat[4], tmp_mat[5], tmp_mat[6], tmp_mat[7]);
+    // lds128(from_mat_s, tmp_mat[0], tmp_mat[1], tmp_mat[2], tmp_mat[3]);
+    // lds128(from_mat_s+(32+LD_buffer), tmp_mat[4], tmp_mat[5], tmp_mat[6], tmp_mat[7]);
+    #pragma unroll
+    for (int lds_idx=0; lds_idx<4; ++lds_idx) {
+        tmp_mat[lds_idx] = from_mat_s[lds_idx];
+        tmp_mat[lds_idx+4] = (from_mat_s+(32+LD_buffer))[lds_idx];
+    }
     __half2 * to_matT = matT + (block_row*32) + (block_col*64)*(M/2) + thread_row*2*(M/2) + thread_col*4;
     stg128(to_matT, tmp_mat[0], tmp_mat[1], tmp_mat[2], tmp_mat[3]);
     stg128(to_matT+(M/2), tmp_mat[4], tmp_mat[5], tmp_mat[6], tmp_mat[7]);
