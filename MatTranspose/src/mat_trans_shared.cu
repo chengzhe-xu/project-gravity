@@ -90,7 +90,7 @@ __global__ void mat_trans_shared_kernel(__half2 * mat, __half2 * matT, int M, in
     #pragma unroll
     for (int lds_idx=0; lds_idx<4; ++lds_idx) {
         tmp_mat[lds_idx] = from_mat_s[lds_idx];
-        tmp_mat[lds_idx+4] = (from_mat_s+(32+LD_buffer))[lds_idx];
+        tmp_mat[lds_idx+4] = from_mat_s[lds_idx+(32+LD_buffer)];
     }
     __half2 * to_matT = matT + (block_row*32) + (block_col*64)*(M/2) + thread_row*2*(M/2) + thread_col*4;
     stg128(to_matT, tmp_mat[0], tmp_mat[1], tmp_mat[2], tmp_mat[3]);
