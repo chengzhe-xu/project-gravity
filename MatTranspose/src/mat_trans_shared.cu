@@ -37,7 +37,7 @@ __device__ __forceinline__ void stg128(__half2* addr, __half2 &reg0, __half2 &re
 }
 
 __device__ __forceinline__ void lds128(__half2* addr, __half2 &reg0, __half2 &reg1, __half2 &reg2, __half2 &reg3){
-    __half2* addr_shared_state = reinterpret_cast<__half2 *>(__cvta_generic_to_shared(addr));
+    unsigned int* addr_shared_state = reinterpret_cast<unsigned int *>(__cvta_generic_to_shared(addr));
     unsigned int reg0_ui, reg1_ui, reg2_ui, reg3_ui;
     asm volatile(
         "ld.shared.v4.b32 {%0, %1, %2, %3}, [%4];\n"
@@ -61,7 +61,7 @@ __global__ void mat_trans_shared_kernel(__half2 * mat, __half2 * matT, int M, in
     unsigned int thread_col = threadIdx.x % 8;
     const unsigned int LD_buffer = 1;
 
-    __shared__ __align__(16 * 1024) char smem[8704];
+    __shared__ __align__(16 * 1024) char smem[8448];
     __half2* mat_s = reinterpret_cast<__half2 * >(smem);
 
     __half2 * from_mat  = mat + block_row*64*(N/2) + block_col*32 + thread_row*2*(N/2) + thread_col*4;
