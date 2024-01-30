@@ -84,9 +84,10 @@ __global__ void mat_trans_shared_kernel(__half2 * mat, __half2 * matT, int M, in
     to_mat_s[(32+LD_buffer)*6] = tmp_mat[3];
     to_mat_s[(32+LD_buffer)*7] = tmp_mat[7];
     __syncthreads();
+    // unsigned int from_mat_s = thread_row*2*(32+LD_buffer) + thread_col*4;
+    // lds128(mat_s+from_mat_s, tmp_mat[0], tmp_mat[1], tmp_mat[2], tmp_mat[3]);
+    // lds128(mat_s+from_mat_s+(32+LD_buffer), tmp_mat[4], tmp_mat[5], tmp_mat[6], tmp_mat[7]);
     __half2 * from_mat_s = mat_s + thread_row*2*(32+LD_buffer) + thread_col*4;
-    // lds128(from_mat_s, tmp_mat[0], tmp_mat[1], tmp_mat[2], tmp_mat[3]);
-    // lds128(from_mat_s+(32+LD_buffer), tmp_mat[4], tmp_mat[5], tmp_mat[6], tmp_mat[7]);
     #pragma unroll
     for (int lds_idx=0; lds_idx<4; ++lds_idx) {
         tmp_mat[lds_idx] = from_mat_s[lds_idx];
